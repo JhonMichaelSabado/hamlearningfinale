@@ -623,6 +623,9 @@ const notifyStudentsOfMaterialPosted = async (classId, materialTitle, materialFi
 
     // Send email to each student
     console.log(`[NOTIFY_MATERIAL] Step 4: Sending emails to students...`);
+    let emailsSent = 0;
+    let emailsFailed = 0;
+    
     for (const enrollment of enrollments) {
       console.log(`   [NOTIFY_MATERIAL] Querying student ${enrollment.user_id}...`);
       const { data: student } = await supabase
@@ -637,6 +640,8 @@ const notifyStudentsOfMaterialPosted = async (classId, materialTitle, materialFi
       }
 
       console.log(`   📧 [NOTIFY_MATERIAL] Preparing email for ${student.email}...`);
+      
+      const htmlContent = `
         <!DOCTYPE html>
         <html>
         <head>
