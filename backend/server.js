@@ -104,6 +104,27 @@ app.get('/', (req, res) => {
   res.json({ message: 'LMS Backend API is running' });
 });
 
+// DIAGNOSTIC: Check notification engine status
+app.get('/api/diagnostic/notification-status', (req, res) => {
+  const emailUser = process.env.EMAIL_USER;
+  const emailPassword = process.env.EMAIL_PASSWORD;
+  
+  res.json({
+    status: 'diagnostic',
+    timestamp: new Date().toISOString(),
+    environmentVariables: {
+      EMAIL_USER_defined: !!emailUser,
+      EMAIL_USER_preview: emailUser ? `${emailUser.substring(0, 5)}...` : 'undefined',
+      EMAIL_PASSWORD_defined: !!emailPassword,
+      EMAIL_PASSWORD_length: emailPassword ? emailPassword.length : 0,
+      FRONTEND_URL_defined: !!process.env.FRONTEND_URL,
+      BACKEND_URL_defined: !!process.env.BACKEND_URL,
+      VERCEL_ENV: process.env.VERCEL_ENV || 'local'
+    },
+    message: emailUser && emailPassword ? '✅ Credentials configured' : '❌ Credentials missing'
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   
