@@ -8,14 +8,15 @@ const fs = require('fs');
 const nodemailer = require('nodemailer');
 const router = express.Router();
 
-// Configure email transporter
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER || 'your-email@gmail.com',
-    pass: process.env.EMAIL_PASSWORD || 'your-app-password'
-  }
-});
+const transporter = process.env.EMAIL_USER && process.env.EMAIL_PASSWORD 
+  ? nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD
+      }
+    })
+  : { sendMail: () => console.log("Email service not configured - skipping email") };
 
 const ATTACHMENT_MARKER = '__TASK_ATTACHMENT__:';
 
