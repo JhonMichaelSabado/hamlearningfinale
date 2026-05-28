@@ -176,6 +176,38 @@ app.get('/api/diagnostic/student-enrollment/:email/:classId', async (req, res) =
   }
 });
 
+// DIAGNOSTIC: Test sending email directly
+app.get('/api/diagnostic/test-email/:recipientEmail', async (req, res) => {
+  try {
+    const { recipientEmail } = req.params;
+    const { notifyStudentsOfMaterialPosted } = require('./services/notificationEngine');
+    
+    console.log(`\n🧪 [TEST-EMAIL] Testing notification to: ${recipientEmail}`);
+    
+    // Call the notification function directly with test data
+    await notifyStudentsOfMaterialPosted(
+      14, // classId
+      'TEST: Notification System Check', // materialTitle
+      'test-file.pdf' // materialFileName
+    );
+    
+    res.json({
+      status: 'diagnostic',
+      message: '✅ Notification function executed',
+      note: 'Check your email or Vercel logs for detailed output',
+      testClass: 14,
+      recipient: recipientEmail
+    });
+  } catch (error) {
+    console.error('❌ [TEST-EMAIL] Error:', error);
+    res.json({
+      status: 'error',
+      message: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   
