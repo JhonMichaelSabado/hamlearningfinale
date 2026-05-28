@@ -1,16 +1,38 @@
 const nodemailer = require('nodemailer');
 const supabase = require('../config/supabase');
 
-// Initialize transporter
-const transporter = process.env.EMAIL_USER && process.env.EMAIL_PASSWORD 
+// Initialize transporter with better logging
+const emailUser = process.env.EMAIL_USER;
+const emailPassword = process.env.EMAIL_PASSWORD;
+
+console.log('===== EMAIL SERVICE INITIALIZATION =====');
+console.log('EMAIL_USER configured:', !!emailUser);
+console.log('EMAIL_PASSWORD configured:', !!emailPassword);
+
+const transporter = emailUser && emailPassword 
   ? nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD
+        user: emailUser,
+        pass: emailPassword
       }
     })
   : null;
+
+if (transporter) {
+  console.log('✅ Email transporter initialized successfully');
+  // Verify connection
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error('❌ Email transporter verification failed:', error);
+    } else {
+      console.log('✅ Email transporter verified - ready to send emails');
+    }
+  });
+} else {
+  console.warn('⚠️  Email transporter NOT initialized - EMAIL_USER or EMAIL_PASSWORD not set');
+}
+console.log('=====================================\n');
 
 const BRAND_COLOR = '#2d7a4f';
 const BRAND_DARK = '#1e5a3a';
@@ -135,20 +157,26 @@ const getEmailTemplate = (content) => `
 `;
 
 /**
- * Send email safely with error handling
+ * Send email safely with error handling and logging
  */
 const sendEmailSafely = async (mailOptions) => {
   if (!transporter) {
-    console.log('Email service not configured - skipping email:', mailOptions.subject);
+    console.warn('⚠️  Email service not configured - skipping email:', mailOptions.subject);
+    console.warn('   To: ' + mailOptions.to);
+    console.warn('   (Set EMAIL_USER and EMAIL_PASSWORD environment variables to enable)');
     return { success: false, reason: 'Email service not configured' };
   }
 
   try {
-    await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully to:', mailOptions.to);
-    return { success: true };
+    console.log(`📧 Sending email: "${mailOptions.subject}" to ${mailOptions.to}`);
+    const result = await transporter.sendMail(mailOptions);
+    console.log(`✅ Email sent successfully to: ${mailOptions.to}`);
+    console.log(`   Message ID: ${result.messageId}`);
+    return { success: true, messageId: result.messageId };
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error(`❌ Error sending email to ${mailOptions.to}:`, error.message);
+    console.error('   Subject:', mailOptions.subject);
+    console.error('   Error details:', error);
     // Don't throw - allow operation to continue even if email fails
     return { success: false, error: error.message };
   }
@@ -325,13 +353,23 @@ const notifyDeadlineReminder = async (taskId, hoursUntilDeadline) => {
  */
 const notifyActivityGraded = async (submissionId, studentId, taskId, score, feedback, maxScore) => {
   try {
+    console.log(`\n✅ [GRADING NOTIFICATION] Submission: ${submissionId}, Student: ${studentId}, Task: ${taskId}, Score: ${score}/${maxScore}`);
+
     const { data: student } = await supabase
       .from('users')
       .select('email, name')
       .eq('id', studentId)
       .single();
 
-    if (!student || !student.email) return;
+    if (!student) {
+      console.warn('⚠️  Student not found for ID:', studentId);
+      return;
+    }
+
+    if (!student.email) {
+      console.warn('⚠️  Student has no email address:', student.name);
+      return;
+    }
 
     const { data: task } = await supabase
       .from('tasks')
@@ -339,7 +377,12 @@ const notifyActivityGraded = async (submissionId, studentId, taskId, score, feed
       .eq('id', taskId)
       .single();
 
-    if (!task) return;
+    if (!task) {
+      console.warn('⚠️  Task not found for ID:', taskId);
+      return;
+    }
+
+    console.log(`✓ Data retrieved: Student=${student.email}, Task=${task.title}`);
 
     const scorePercentage = maxScore ? Math.round((score / maxScore) * 100) : null;
 
@@ -393,9 +436,17 @@ const notifyActivityGraded = async (submissionId, studentId, taskId, score, feed
       html: getEmailTemplate(mailContent)
     };
 
-    await sendEmailSafely(mailOptions);
+    console.log(`📧 Calling sendEmailSafely for student: ${student.email}`);
+    const result = await sendEmailSafely(mailOptions);
+    
+    if (result.success) {
+      console.log(`✅ Grading notification sent successfully`);
+    } else {
+      console.error(`❌ Failed to send grading notification:`, result.error);
+    }
   } catch (error) {
-    console.error('Error notifying graded activity:', error);
+    console.error('❌ Error in notifyActivityGraded:', error.message);
+    console.error('Stack:', error.stack);
   }
 };
 
@@ -404,13 +455,23 @@ const notifyActivityGraded = async (submissionId, studentId, taskId, score, feed
  */
 const notifySubmissionReceived = async (taskId, studentId, teacherId, fileName, submissionText) => {
   try {
+    console.log(`\n📤 [SUBMISSION NOTIFICATION] Task: ${taskId}, Student: ${studentId}, Teacher: ${teacherId}`);
+
     const { data: teacher } = await supabase
       .from('users')
       .select('email, name')
       .eq('id', teacherId)
       .single();
 
-    if (!teacher || !teacher.email) return;
+    if (!teacher) {
+      console.warn('⚠️  Teacher not found for ID:', teacherId);
+      return;
+    }
+
+    if (!teacher.email) {
+      console.warn('⚠️  Teacher has no email address:', teacher.name);
+      return;
+    }
 
     const { data: student } = await supabase
       .from('users')
@@ -424,7 +485,12 @@ const notifySubmissionReceived = async (taskId, studentId, teacherId, fileName, 
       .eq('id', taskId)
       .single();
 
-    if (!task) return;
+    if (!task) {
+      console.warn('⚠️  Task not found for ID:', taskId);
+      return;
+    }
+
+    console.log(`✓ Data retrieved: Teacher=${teacher.email}, Student=${student?.email}, Task=${task.title}`);
 
     const mailContent = `
       <div class="header">
@@ -464,9 +530,17 @@ const notifySubmissionReceived = async (taskId, studentId, teacherId, fileName, 
       html: getEmailTemplate(mailContent)
     };
 
-    await sendEmailSafely(mailOptions);
+    console.log(`📧 Calling sendEmailSafely for teacher: ${teacher.email}`);
+    const result = await sendEmailSafely(mailOptions);
+    
+    if (result.success) {
+      console.log(`✅ Submission notification sent successfully`);
+    } else {
+      console.error(`❌ Failed to send submission notification:`, result.error);
+    }
   } catch (error) {
-    console.error('Error notifying submission received:', error);
+    console.error('❌ Error in notifySubmissionReceived:', error.message);
+    console.error('Stack:', error.stack);
   }
 };
 

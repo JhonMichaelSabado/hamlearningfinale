@@ -19,6 +19,7 @@ const fileRoutes = require('./routes/files-local');
 const archiveRoutes = require('./routes/archive');
 const wellnessRoutes = require('./routes/wellness');
 const adminRoutes = require('./routes/admin');
+const diagnosticsRoutes = require('./routes/diagnostics');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -96,6 +97,7 @@ app.use('/api/files', routes.fileRoutes);
 app.use('/api/archive', routes.archiveRoutes);
 app.use('/api/wellness', routes.wellnessRoutes);
 app.use('/api/admin', routes.adminRoutes);
+app.use('/api/diagnostics', diagnosticsRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'LMS Backend API is running' });

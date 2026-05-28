@@ -589,6 +589,10 @@ router.post('/submit/:taskId', verifyToken, async (req, res) => {
     const { taskId } = req.params;
     const { fileUrl, fileName, submissionText } = req.body;
 
+    console.log(`\n📝 [TASK SUBMISSION] User: ${req.user.id}, Task: ${taskId}`);
+    console.log('   File:', fileName);
+    console.log('   Has submission text:', !!submissionText);
+
     // Verify task exists and student is enrolled in the class
     const { data: task } = await supabase
       .from('tasks')
@@ -598,8 +602,11 @@ router.post('/submit/:taskId', verifyToken, async (req, res) => {
       .single();
 
     if (!task) {
+      console.warn('⚠️  Task not found:', taskId);
       return res.status(404).json({ message: 'Task not found' });
     }
+
+    console.log(`   Task: ${task.title}, Class ID: ${task.class_id}, Teacher ID: ${task.teacher_id}`);
 
     // Check enrollment
     const { data: enrollment } = await supabase
@@ -610,8 +617,11 @@ router.post('/submit/:taskId', verifyToken, async (req, res) => {
       .single();
 
     if (!enrollment) {
+      console.warn('⚠️  Student not enrolled in class');
       return res.status(403).json({ message: 'Not enrolled in this class' });
     }
+
+    console.log('✓ Student enrolled in class');
 
     // Check if submission already exists
     const { data: existingSubmission } = await supabase
@@ -622,6 +632,8 @@ router.post('/submit/:taskId', verifyToken, async (req, res) => {
       .single();
 
     if (existingSubmission) {
+      console.log('→ Updating existing submission');
+      
       // Update existing submission
       const { data: updatedSubmission, error } = await supabase
         .from('task_submissions')
@@ -640,11 +652,16 @@ router.post('/submit/:taskId', verifyToken, async (req, res) => {
         return res.status(500).json({ message: 'Error updating submission' });
       }
 
+      console.log('✓ Submission updated');
+
       // Notify teacher of resubmission
+      console.log(`📧 Triggering notification to teacher (ID: ${task.teacher_id})...`);
       await notifySubmissionReceived(task.id, req.user.id, task.teacher_id, fileName, submissionText);
 
       return res.json(updatedSubmission);
     } else {
+      console.log('→ Creating new submission');
+      
       // Create new submission
       const { data: newSubmission, error } = await supabase
         .from('task_submissions')
@@ -665,13 +682,17 @@ router.post('/submit/:taskId', verifyToken, async (req, res) => {
         return res.status(500).json({ message: 'Error creating submission' });
       }
 
+      console.log('✓ Submission created');
+
       // Notify teacher of submission
+      console.log(`📧 Triggering notification to teacher (ID: ${task.teacher_id})...`);
       await notifySubmissionReceived(task.id, req.user.id, task.teacher_id, fileName, submissionText);
 
       return res.status(201).json(newSubmission);
     }
   } catch (error) {
-    console.error(error);
+    console.error('❌ Error in task submission:', error.message);
+    console.error('Stack:', error.stack);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -725,6 +746,9 @@ router.patch('/submission/:submissionId/grade', verifyToken, async (req, res) =>
     const { submissionId } = req.params;
     const { score, feedback } = req.body;
 
+    console.log(`\n📝 [GRADING] Submission: ${submissionId}, Teacher: ${req.user.id}`);
+    console.log(`   Score: ${score}, Feedback: ${feedback ? feedback.substring(0, 50) + '...' : 'None'}`);
+
     // Get submission and verify teacher owns the task
     const { data: submission } = await supabase
       .from('task_submissions')
@@ -740,15 +764,18 @@ router.patch('/submission/:submissionId/grade', verifyToken, async (req, res) =>
       .single();
 
     if (!submission) {
+      console.warn('⚠️  Submission not found:', submissionId);
       return res.status(404).json({ message: 'Submission not found' });
     }
 
     if (submission.tasks.teacher_id !== req.user.id) {
+      console.warn('⚠️  Teacher not authorized to grade this submission');
       return res.status(403).json({ message: 'Not authorized to grade this submission' });
     }
 
     // Validate score
     if (score !== undefined && submission.tasks.max_score && parseFloat(score) > parseFloat(submission.tasks.max_score)) {
+      console.warn('⚠️  Score exceeds max score:', score, '>', submission.tasks.max_score);
       return res.status(400).json({ message: 'Score cannot exceed max score' });
     }
 
@@ -768,8 +795,11 @@ router.patch('/submission/:submissionId/grade', verifyToken, async (req, res) =>
       return res.status(500).json({ message: 'Error grading submission' });
     }
 
+    console.log(`✓ Submission graded`);
+
     // Notify student that their activity has been graded
     if (updatedSubmission) {
+      console.log(`📧 Triggering notification to student (ID: ${updatedSubmission.student_id})...`);
       await notifyActivityGraded(
         submissionId,
         updatedSubmission.student_id,
@@ -782,7 +812,8 @@ router.patch('/submission/:submissionId/grade', verifyToken, async (req, res) =>
 
     res.json(updatedSubmission);
   } catch (error) {
-    console.error(error);
+    console.error('❌ Error in grading:', error.message);
+    console.error('Stack:', error.stack);
     res.status(500).json({ message: 'Server error' });
   }
 });
