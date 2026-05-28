@@ -4,6 +4,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 const { initializeDeadlineReminders } = require('./services/deadlineReminderJob');
+const supabase = require('./config/supabase');
 
 // Route Imports
 const authRoutes = require('./routes/auth');
