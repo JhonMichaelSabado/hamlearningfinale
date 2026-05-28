@@ -1,38 +1,47 @@
 /**
- * NOTIFICATION ENGINE v2
- * Automated, role-based notification system using Resend
- * No personal Gmail credentials required - privacy-friendly
- * Works seamlessly with Vercel for educational LMS
+ * NOTIFICATION ENGINE - Simple Automated Email System
+ * Uses Nodemailer + Gmail for reliable automated notifications
+ * Environment variables (encrypted in Vercel) - NO privacy violation
+ * Works seamlessly with Vercel serverless deployment
  */
 
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 const supabase = require('../config/supabase');
 
-// ==================== RESEND EMAIL SERVICE SETUP ====================
-const resendApiKey = process.env.RESEND_API_KEY;
+// ==================== EMAIL SERVICE SETUP ====================
+const EMAIL_USER = process.env.EMAIL_USER;
+const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD;
 
-let resend = null;
-if (resendApiKey) {
-  resend = new Resend(resendApiKey);
-  console.log('📧 [NOTIFICATION ENGINE] Resend email service initialized');
+let transporter = null;
+
+if (EMAIL_USER && EMAIL_PASSWORD) {
+  transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: EMAIL_USER,
+      pass: EMAIL_PASSWORD
+    }
+  });
+  console.log('📧 [NOTIFICATION ENGINE] Email service initialized');
+  console.log('   From:', EMAIL_USER);
 } else {
-  console.warn('⚠️  [NOTIFICATION ENGINE] Resend API key NOT configured');
-  console.warn('   Set RESEND_API_KEY environment variable in Vercel');
+  console.warn('⚠️  [NOTIFICATION ENGINE] Email credentials NOT configured');
+  console.warn('   Add EMAIL_USER and EMAIL_PASSWORD to Vercel environment variables');
 }
 
 const BRAND_COLOR = '#2d7a4f';
 const BRAND_DARK = '#1e5a3a';
-const SENDER_EMAIL = 'noreply@hamlearning.edu';
 const SENDER_NAME = 'HamLearning LMS';
 
 /**
- * Send email notification safely using Resend
- * Privacy-friendly: No personal Gmail credentials needed
+ * Send email notification safely using Nodemailer
+ * Automated: No manual intervention needed
+ * Secure: Credentials stored in encrypted environment variables
  */
 const sendNotification = async (to, subject, htmlContent) => {
-  if (!resend) {
-    console.warn('⚠️  Resend not configured - notification skipped');
-    console.warn('   To enable: Set RESEND_API_KEY in Vercel environment variables');
+  if (!transporter) {
+    console.warn('⚠️  Email service not configured - notification skipped');
+    console.warn('   To enable: Add EMAIL_USER and EMAIL_PASSWORD to Vercel');
     return { success: false };
   }
 
@@ -44,23 +53,18 @@ const sendNotification = async (to, subject, htmlContent) => {
   try {
     console.log(`📧 Sending email: "${subject}" to ${to}`);
     
-    const result = await resend.emails.send({
-      from: `${SENDER_NAME} <${SENDER_EMAIL}>`,
+    const result = await transporter.sendMail({
+      from: `${SENDER_NAME} <${EMAIL_USER}>`,
       to: to,
       subject: subject,
       html: htmlContent
     });
 
-    if (result.error) {
-      console.error(`❌ Error sending email to ${to}:`, result.error.message);
-      return { success: false, error: result.error.message };
-    }
-
     console.log(`✅ Email sent successfully to: ${to}`);
-    console.log(`   ID: ${result.data.id}`);
-    return { success: true, messageId: result.data.id };
+    console.log(`   Message ID: ${result.messageId}`);
+    return { success: true, messageId: result.messageId };
   } catch (error) {
-    console.error(`❌ Error sending notification to ${to}:`, error.message);
+    console.error(`❌ Error sending email to ${to}:`, error.message);
     return { success: false, error: error.message };
   }
 };
