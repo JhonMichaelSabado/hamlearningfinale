@@ -572,11 +572,15 @@ const notifyStudentsOfAnnouncement = async (classId, announcementTitle, announce
  * Recipient: All students enrolled in that class
  */
 const notifyStudentsOfMaterialPosted = async (classId, materialTitle, materialFileName) => {
+  console.log(`\n\n========================================`);
+  console.log(`🚀 [NOTIFY_MATERIAL] FUNCTION CALLED`);
+  console.log(`   Class ID: ${classId}`);
+  console.log(`   Title: ${materialTitle}`);
+  console.log(`   File: ${materialFileName}`);
+  console.log(`========================================\n`);
+  
   try {
-    console.log(`\n🚀 [MATERIAL POSTED] NOTIFICATION STARTED`);
-    console.log(`   Class ID: ${classId}`);
-    console.log(`   Title: ${materialTitle}`);
-    console.log(`   File: ${materialFileName}`);
+    console.log(`[NOTIFY_MATERIAL] Step 1: Getting class details...`);
 
     // Get class details
     const { data: classData } = await supabase
@@ -586,46 +590,53 @@ const notifyStudentsOfMaterialPosted = async (classId, materialTitle, materialFi
       .single();
 
     if (!classData) {
-      console.warn('⚠️  Class not found');
+      console.warn('⚠️  [NOTIFY_MATERIAL] Class not found in database');
       return;
     }
-    console.log(`   ✓ Class found: ${classData.class_name}`);
-
+    console.log(`✓ [NOTIFY_MATERIAL] Class found: ${classData.class_name}`);
+    
     // Get teacher info
+    console.log(`[NOTIFY_MATERIAL] Step 2: Getting teacher info...`);
     const { data: teacher } = await supabase
       .from('users')
       .select('name')
       .eq('id', classData.instructor_id)
       .single();
 
-    console.log(`   ✓ Teacher found: ${teacher?.name || 'Unknown'}`);
+    console.log(`✓ [NOTIFY_MATERIAL] Teacher found: ${teacher?.name || 'Unknown'}`);
 
     // Get all enrolled students
+    console.log(`[NOTIFY_MATERIAL] Step 3: Getting enrolled students...`);
     const { data: enrollments } = await supabase
       .from('enrollments')
       .select('user_id')
       .eq('class_id', classId);
 
     if (!enrollments || enrollments.length === 0) {
-      console.log('   No students to notify');
+      console.log('⚠️  [NOTIFY_MATERIAL] No students enrolled in this class');
       return;
     }
 
-    console.log(`   ✓ Found ${enrollments.length} students to notify`);
+    console.log(`✓ [NOTIFY_MATERIAL] Found ${enrollments.length} students to notify`);
 
     const materialsUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/class/${classId}/files`;
 
     // Send email to each student
+    console.log(`[NOTIFY_MATERIAL] Step 4: Sending emails to students...`);
     for (const enrollment of enrollments) {
+      console.log(`   [NOTIFY_MATERIAL] Querying student ${enrollment.user_id}...`);
       const { data: student } = await supabase
         .from('users')
         .select('email, name')
         .eq('id', enrollment.user_id)
         .single();
 
-      if (!student || !student.email) continue;
+      if (!student || !student.email) {
+        console.warn(`   ⚠️  [NOTIFY_MATERIAL] Skipping student - no email found`);
+        continue;
+      }
 
-      const htmlContent = `
+      console.log(`   📧 [NOTIFY_MATERIAL] Preparing email for ${student.email}...`);
         <!DOCTYPE html>
         <html>
         <head>
