@@ -20,21 +20,24 @@ console.log('   EMAIL_USER value:', EMAIL_USER ? `${EMAIL_USER.substring(0, 5)}*
 let transporter = null;
 
 if (EMAIL_USER && EMAIL_PASSWORD) {
+  // Use explicit host/port for Gmail instead of "service: gmail"
+  // This allows us to use port 587 (TLS) instead of 465 (SSL) which Vercel may block
   transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false, // Use TLS instead of SSL
+    requireTLS: true,
     auth: {
       user: EMAIL_USER,
       pass: EMAIL_PASSWORD
     },
-    secure: true,
-    requireTLS: true,
-    connectionTimeout: 5000,
-    socketTimeout: 5000
+    connectionTimeout: 10000,
+    socketTimeout: 10000
   });
   console.log('📧 [NOTIFICATION ENGINE] Email service initialized');
   console.log('   From:', EMAIL_USER);
-  console.log('   Service: Gmail SMTP');
-  console.log('   Secure: true, RequireTLS: true');
+  console.log('   SMTP Host: smtp.gmail.com');
+  console.log('   Port: 587 (TLS)');
 } else {
   console.warn('⚠️  [NOTIFICATION ENGINE] Email credentials NOT configured');
   console.warn('   Add EMAIL_USER and EMAIL_PASSWORD to Vercel environment variables');
