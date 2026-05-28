@@ -64,11 +64,10 @@ const SENDER_NAME = 'HamLearning LMS';
  * Secure: Credentials stored in encrypted environment variables
  */
 const sendNotification = async (to, subject, htmlContent) => {
-  console.log(`[SEND NOTIFICATION] Starting - To: ${to}, Subject: ${subject}`);
+  console.log(`\n[SEND_NOTIFICATION_START] Recipient: ${to}`);
   
   if (!transporter) {
     console.warn('⚠️  Email service not configured - notification skipped');
-    console.warn('   To enable: Add EMAIL_USER and EMAIL_PASSWORD to Vercel');
     return { success: false };
   }
 
@@ -78,10 +77,12 @@ const sendNotification = async (to, subject, htmlContent) => {
   }
 
   try {
-    console.log(`📧 Sending email: "${subject}" to ${to}`);
+    console.log(`📧 [SENDMAIL] Attempting to send email...`);
+    console.log(`   Subject: "${subject}"`);
+    console.log(`   To: ${to}`);
     console.log(`   From: ${EMAIL_USER}`);
-    console.log(`   HTML length: ${htmlContent.length} chars`);
-    console.log(`   Attempting to send via Gmail SMTP...`);
+    console.log(`   HTML Length: ${htmlContent.length} chars`);
+    console.log(`   Calling transporter.sendMail()...`);
     
     const result = await transporter.sendMail({
       from: `${SENDER_NAME} <${EMAIL_USER}>`,
@@ -90,16 +91,17 @@ const sendNotification = async (to, subject, htmlContent) => {
       html: htmlContent
     });
 
-    console.log(`✅ Email sent successfully to: ${to}`);
+    console.log(`\n✅ [SENDMAIL_SUCCESS] Email delivered!`);
     console.log(`   Message ID: ${result.messageId}`);
-    console.log(`   Response:`, JSON.stringify(result));
+    console.log(`   Response: ${JSON.stringify(result)}`);
     return { success: true, messageId: result.messageId };
   } catch (error) {
-    console.error(`\n❌ SMTP ERROR sending email to ${to}:`);
-    console.error(`   Code: ${error.code}`);
-    console.error(`   Command: ${error.command}`);
-    console.error(`   Message: ${error.message}`);
-    console.error(`   Full error:`, JSON.stringify(error, null, 2));
+    console.error(`\n❌ [SENDMAIL_ERROR] Failed to send email to ${to}`);
+    console.error(`   Error Code: ${error.code}`);
+    console.error(`   Error Command: ${error.command}`);
+    console.error(`   Error Message: ${error.message}`);
+    console.error(`   Stack Trace: ${error.stack}`);
+    console.error(`   Full Error:`, JSON.stringify(error, null, 2));
     return { success: false, error: error.message };
   }
 };
