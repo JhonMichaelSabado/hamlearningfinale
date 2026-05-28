@@ -13,6 +13,12 @@ import Profile from './components/Profile';
 import ClassDetail from './components/ClassDetail';
 import ArchiveDashboard from './components/ArchiveDashboard';
 import AccessibilityPanel from './components/AccessibilityPanel';
+import AdminDashboard, {
+  AdminOverview,
+  AdminUserManagement,
+  AdminAcademicSetup,
+  AdminSystemSettings
+} from './components/AdminDashboard';
 
 // Student Module components
 import DashboardHome from './components/modules/DashboardHome';
@@ -35,7 +41,13 @@ import TeacherClassStudents from './components/teacher-modules/TeacherClassStude
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 // Protected Route Component
-const ProtectedRoute = ({ children }) => {
+const getHomePath = (role) => {
+  if (role === 'admin') return '/admin-dashboard';
+  if (role === 'teacher') return '/teacher-dashboard';
+  return '/dashboard';
+};
+
+const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -53,7 +65,15 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  return user ? children : <Navigate to="/login" />;
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+    return <Navigate to={getHomePath(user.role)} replace />;
+  }
+
+  return children;
 };
 
 // Public Route Component (redirect to appropriate dashboard based on role)
@@ -76,7 +96,7 @@ const PublicRoute = ({ children }) => {
   }
 
   if (user) {
-    return <Navigate to={user.role === 'teacher' ? '/teacher-dashboard' : '/dashboard'} />;
+    return <Navigate to={getHomePath(user.role)} replace />;
   }
 
   return children;
@@ -123,7 +143,7 @@ function AppRoutes() {
       <Route 
         path="/dashboard" 
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['student']}>
             {user?.role === 'teacher' ? <Navigate to="/teacher-dashboard" /> : <Dashboard />}
           </ProtectedRoute>
         }
@@ -143,7 +163,7 @@ function AppRoutes() {
       <Route 
         path="/teacher-dashboard" 
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['teacher']}>
             {user?.role === 'student' ? <Navigate to="/dashboard" /> : <TeacherDashboard />}
           </ProtectedRoute>
         }
@@ -159,6 +179,19 @@ function AppRoutes() {
           <Route path="deadlines" element={<TeacherClassDeadlines />} />
           <Route path="students" element={<TeacherClassStudents />} />
         </Route>
+      </Route>
+      <Route
+        path="/admin-dashboard"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<AdminOverview />} />
+        <Route path="users" element={<AdminUserManagement />} />
+        <Route path="academic" element={<AdminAcademicSetup />} />
+        <Route path="settings" element={<AdminSystemSettings />} />
       </Route>
     </Routes>
   );

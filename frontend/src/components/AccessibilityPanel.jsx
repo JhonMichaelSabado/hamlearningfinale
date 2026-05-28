@@ -247,16 +247,41 @@ const AccessibilityPanel = () => {
   const insertText = (text) => {
     const element = focusedInput || document.activeElement;
     if (element && (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA')) {
-      const startPos = element.selectionStart;
-      const endPos = element.selectionEnd;
+      // Safely obtain selection positions. Some input types (e.g. type="email")
+      // may not expose selectionStart/selectionEnd or may throw — fall back to
+      // appending at the end in that case.
+      let startPos;
+      let endPos;
+      let supportsSelection = true;
+      try {
+        supportsSelection = (typeof element.selectionStart === 'number' && typeof element.selectionEnd === 'number');
+      } catch (err) {
+        supportsSelection = false;
+      }
+
+      if (supportsSelection) {
+        startPos = element.selectionStart;
+        endPos = element.selectionEnd;
+        // Normalize null/undefined
+        if (startPos == null) startPos = element.value.length;
+        if (endPos == null) endPos = element.value.length;
+      } else {
+        startPos = endPos = element.value.length;
+      }
 
       // handle backspace
       if (text === '\b') {
-        if (startPos > 0) {
-          element.value =
-            element.value.substring(0, startPos - 1) +
-            element.value.substring(endPos);
-          element.selectionStart = element.selectionEnd = startPos - 1;
+        if (supportsSelection) {
+          if (startPos > 0) {
+            element.value = element.value.substring(0, startPos - 1) + element.value.substring(endPos);
+            const newPos = startPos - 1;
+            try { element.setSelectionRange(newPos, newPos); } catch (e) {}
+          }
+        } else {
+          // Fallback: remove last character when selection APIs unavailable
+          if (element.value.length > 0) {
+            element.value = element.value.slice(0, -1);
+          }
         }
       } else {
         // apply caps/shift like a physical keyboard
@@ -268,18 +293,23 @@ const AccessibilityPanel = () => {
           out = SHIFT_SYMBOLS[text];
         }
 
-        element.value =
-          element.value.substring(0, startPos) +
-          out +
-          element.value.substring(endPos);
-        element.selectionStart = element.selectionEnd = startPos + out.length;
+        // Insert/append based on computed positions
+        element.value = element.value.substring(0, startPos) + out + element.value.substring(endPos);
+
+        // Advance the caret to just after the inserted text
+        const caretPos = startPos + out.length;
+        try {
+          element.setSelectionRange(caretPos, caretPos);
+        } catch (e) {
+          // ignore if browser disallows setting selection (e.g., some input types)
+        }
       }
 
       // shift is momentary: release after one printable key
       if (shift && text !== 'Shift') setShift(false);
 
-      element.focus();
-      // Trigger input event for form validation
+      // Ensure the element stays focused and notify any listeners of the change
+      try { element.focus(); } catch (e) {}
       element.dispatchEvent(new Event('input', { bubbles: true }));
     }
   };
@@ -401,9 +431,11 @@ const AccessibilityPanel = () => {
       <button
         className="accessibility-toggle"
         onClick={() => setIsExpanded(!isExpanded)}
+        aria-expanded={isExpanded}
         title="Accessibility Panel"
       >
-        Accessibility
+        <span className="accessibility-toggle-label">Accessibility</span>
+        <span className="accessibility-toggle-state">{isExpanded ? 'Open' : 'Closed'}</span>
       </button>
 
       {isExpanded && (
@@ -414,6 +446,7 @@ const AccessibilityPanel = () => {
           <button
             className="accessibility-btn"
             onClick={toggleDarkMode}
+            aria-pressed={isDarkMode}
             title={isDarkMode ? 'Light Mode' : 'Dark Mode'}
           >
             {isDarkMode ? (
@@ -432,6 +465,7 @@ const AccessibilityPanel = () => {
             <button
               className={`accessibility-btn ${magnifierEnabled ? 'active' : ''}`}
               onClick={handleMagnify}
+              aria-pressed={magnifierEnabled}
               title="Magnifier - Hover over text to magnify"
             >
               <IoEyeOutline /> {magnifierEnabled ? 'Magnifier ON' : 'Magnifier OFF'}
@@ -449,6 +483,7 @@ const AccessibilityPanel = () => {
           <button
             className={`accessibility-btn ${textToSpeechEnabled ? 'active' : ''}`}
             onClick={handleTextToSpeech}
+            aria-pressed={textToSpeechEnabled}
             title="Text to Speech (Experimental)"
           >
             <IoVolumeHigh /> {textToSpeechEnabled ? 'Stop' : 'Speak'}
@@ -458,6 +493,7 @@ const AccessibilityPanel = () => {
           <button
             className={`accessibility-btn ${showKeyboard ? 'active' : ''}`}
             onClick={handleKeyboard}
+            aria-pressed={showKeyboard}
             title="Onscreen Keyboard - Click on a text field to auto-show"
           >
             <IoKeypadOutline /> {showKeyboard ? 'Hide Keyboard' : 'Show Keyboard'}

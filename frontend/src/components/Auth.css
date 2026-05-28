@@ -695,6 +695,18 @@
   flex-shrink: 0;
 }
 
+.google-login-wrapper {
+  width: 100%;
+  display: block;
+  margin-top: 6px;
+}
+
+.google-login-row {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
 .error-message {
   background: #fef2f2;
   color: #dc2626;

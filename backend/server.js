@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ override: true });
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -15,6 +15,7 @@ const taskRoutes = require('./routes/tasks');
 const fileRoutes = require('./routes/files-local'); // Using local file storage
 const archiveRoutes = require('./routes/archive');
 const wellnessRoutes = require('./routes/wellness');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = 5000;
@@ -44,6 +45,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/archive', archiveRoutes);
 app.use('/api/wellness', wellnessRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'LMS Backend API is running' });

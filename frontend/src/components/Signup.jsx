@@ -39,6 +39,7 @@ const Signup = () => {
     email: '',
     password: ''
   });
+  const [formErrors, setFormErrors] = useState({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -71,6 +72,13 @@ const Signup = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // Clear custom error for this field when user types
+    setFormErrors(prev => {
+      if (!prev || !prev[name]) return prev;
+      const copy = { ...prev };
+      delete copy[name];
+      return copy;
+    });
     
     // Validate and filter first name and last name
     if (name === 'firstName' || name === 'lastName') {
@@ -184,6 +192,15 @@ const Signup = () => {
       [name]: value
     });
 
+    // Clear login-specific errors when typing
+    setFormErrors(prev => {
+      const key = `login_${name}`;
+      if (!prev || !prev[key]) return prev;
+      const copy = { ...prev };
+      delete copy[key];
+      return copy;
+    });
+
     // Validate login fields
     if (name === 'email') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -208,58 +225,56 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
-    // Reset all errors
-    setFirstNameError('');
-    setLastNameError('');
-    setEmailError('');
-    setPasswordError('');
-    setMajorError('');
-    setAcademicYearError('');
-    setTargetGPAError('');
+    setFormErrors({});
 
-    let hasErrors = false;
+    const newErrors = {};
 
-    // Validate first name
+    // First name
     if (!formData.firstName.trim()) {
       setFirstNameError('First name is required');
-      hasErrors = true;
+      newErrors.firstName = 'First name is required';
     } else {
       const nameRegex = /^[a-zA-Z\s]*$/;
       if (!nameRegex.test(formData.firstName) || /\d/.test(formData.firstName)) {
         setFirstNameError('First name can only contain letters');
-        hasErrors = true;
+        newErrors.firstName = 'First name can only contain letters';
+      } else {
+        setFirstNameError('');
       }
     }
 
-    // Validate last name
+    // Last name
     if (!formData.lastName.trim()) {
       setLastNameError('Last name is required');
-      hasErrors = true;
+      newErrors.lastName = 'Last name is required';
     } else {
       const nameRegex = /^[a-zA-Z\s]*$/;
       if (!nameRegex.test(formData.lastName) || /\d/.test(formData.lastName)) {
         setLastNameError('Last name can only contain letters');
-        hasErrors = true;
+        newErrors.lastName = 'Last name can only contain letters';
+      } else {
+        setLastNameError('');
       }
     }
 
-    // Validate email
+    // Email
     if (!formData.email.trim()) {
       setEmailError('Email is required');
-      hasErrors = true;
+      newErrors.email = 'Email is required';
     } else {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email)) {
         setEmailError('Please enter a valid email address');
-        hasErrors = true;
+        newErrors.email = 'Please enter a valid email address';
+      } else {
+        setEmailError('');
       }
     }
 
-    // Validate password
+    // Password
     if (!formData.password) {
       setPasswordError('Password is required');
-      hasErrors = true;
+      newErrors.password = 'Password is required';
     } else {
       const hasNumber = /\d/.test(formData.password);
       const hasUppercase = /[A-Z]/.test(formData.password);
@@ -268,36 +283,48 @@ const Signup = () => {
 
       if (!isLengthValid || !hasNumber || !hasUppercase || !hasSymbol) {
         setPasswordError('Password must be at least 8 characters with 1 uppercase letter, 1 number, and 1 symbol');
-        hasErrors = true;
+        newErrors.password = 'Password must be at least 8 characters with 1 uppercase letter, 1 number, and 1 symbol';
+      } else {
+        setPasswordError('');
       }
     }
 
-    // Validate major
-    if (!formData.major.trim()) {
-      setMajorError('Major is required');
-      hasErrors = true;
-    }
-
-    // Validate teacher email domain
-    if (role === 'teacher' && formData.email && !formData.email.endsWith('@cvsu.edu.ph')) {
-      setEmailError('Teachers must use a @cvsu.edu.ph email address');
-      hasErrors = true;
-    }
-
-    // Validate student-specific fields
+    // Major (student)
     if (role === 'student') {
+      if (!formData.major.trim()) {
+        setMajorError('Major is required');
+        newErrors.major = 'Major is required';
+      } else {
+        setMajorError('');
+      }
+
       if (!formData.academicYear) {
         setAcademicYearError('Academic year is required');
-        hasErrors = true;
+        newErrors.academicYear = 'Academic year is required';
+      } else {
+        setAcademicYearError('');
       }
 
       if (!formData.targetGPA) {
         setTargetGPAError('Target GPA is required');
-        hasErrors = true;
+        newErrors.targetGPA = 'Target GPA is required';
+      } else {
+        setTargetGPAError('');
       }
+    } else {
+      setMajorError('');
+      setAcademicYearError('');
+      setTargetGPAError('');
     }
 
-    if (hasErrors) {
+    // Teacher-specific email domain
+    if (role === 'teacher' && formData.email && !formData.email.endsWith('@cvsu.edu.ph')) {
+      setEmailError('Teachers must use a @cvsu.edu.ph email address');
+      newErrors.email = 'Teachers must use a @cvsu.edu.ph email address';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFormErrors(newErrors);
       setError('Please fill in all required fields correctly');
       return;
     }
@@ -305,12 +332,11 @@ const Signup = () => {
     setLoading(true);
 
     try {
-      // Combine firstName and lastName into name for backend
       const { firstName, lastName, ...rest } = formData;
-      const signupData = { 
-        ...rest, 
+      const signupData = {
+        ...rest,
         name: `${firstName} ${lastName}`.trim(),
-        role 
+        role
       };
       await signup(signupData);
       navigate('/dashboard');
@@ -324,32 +350,32 @@ const Signup = () => {
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
+    const newErrors = {};
+
     // Reset login errors
     setLoginEmailError('');
     setLoginPasswordError('');
 
-    let hasErrors = false;
-
     // Validate email
     if (!loginData.email.trim()) {
       setLoginEmailError('Email is required');
-      hasErrors = true;
+      newErrors.login_email = 'Email is required';
     } else {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(loginData.email)) {
         setLoginEmailError('Please enter a valid email address');
-        hasErrors = true;
+        newErrors.login_email = 'Please enter a valid email address';
       }
     }
 
     // Validate password
     if (!loginData.password) {
       setLoginPasswordError('Password is required');
-      hasErrors = true;
+      newErrors.login_password = 'Password is required';
     }
 
-    if (hasErrors) {
+    if (Object.keys(newErrors).length > 0) {
+      setFormErrors(prev => ({ ...prev, ...newErrors }));
       setError('Please fill in all required fields');
       return;
     }
@@ -424,7 +450,7 @@ const Signup = () => {
         </div>
 
         {activeTab === 'register' ? (
-          <form onSubmit={handleSubmit} className="auth-form">
+          <form onSubmit={handleSubmit} className="auth-form" noValidate>
             {error && <div className="error-message">{error}</div>}
             
             <div className="role-section">
@@ -457,7 +483,7 @@ const Signup = () => {
                   onChange={handleChange}
                   placeholder="John"
                   required
-                  className={firstNameError ? 'error' : ''}
+                  className={(firstNameError || formErrors.firstName) ? 'error' : ''}
                 />
                 {firstNameError && <span className="field-error">{firstNameError}</span>}
               </div>
@@ -470,7 +496,7 @@ const Signup = () => {
                   onChange={handleChange}
                   placeholder="Doe"
                   required
-                  className={lastNameError ? 'error' : ''}
+                  className={(lastNameError || formErrors.lastName) ? 'error' : ''}
                 />
                 {lastNameError && <span className="field-error">{lastNameError}</span>}
               </div>
@@ -485,7 +511,7 @@ const Signup = () => {
                 onChange={handleChange}
                 placeholder="example@gmail.com"
                 required
-                className={emailError ? 'error' : ''}
+                className={(emailError || formErrors.email) ? 'error' : ''}
               />
               {emailError && <span className="field-error">{emailError}</span>}
             </div>
@@ -500,7 +526,7 @@ const Signup = () => {
                   onChange={handleChange}
                   placeholder="••••••"
                   required
-                  className={passwordError ? 'error' : ''}
+                  className={(passwordError || formErrors.password) ? 'error' : ''}
                 />
                 <button
                   type="button"
@@ -548,7 +574,7 @@ const Signup = () => {
                 value={formData.major}
                 onChange={handleChange}
                 placeholder="e.g., Computer Science"
-                className={majorError ? 'error' : ''}
+                className={(majorError || formErrors.major) ? 'error' : ''}
               />
               {majorError && <span className="field-error">{majorError}</span>}
             </div>
@@ -562,7 +588,7 @@ const Signup = () => {
                     value={formData.academicYear}
                     onChange={handleChange}
                     required
-                    className={academicYearError ? 'error' : ''}
+                    className={(academicYearError || formErrors.academicYear) ? 'error' : ''}
                   >
                     <option value="">Select year</option>
                     <option value="1st year">1st year</option>
@@ -580,7 +606,7 @@ const Signup = () => {
                     value={formData.targetGPA}
                     onChange={handleChange}
                     required
-                    className={targetGPAError ? 'error' : ''}
+                    className={(targetGPAError || formErrors.targetGPA) ? 'error' : ''}
                   >
                     <option value="">Select target GPA</option>
                     <option value="1.00">1.00 (Highest)</option>
@@ -630,7 +656,7 @@ const Signup = () => {
             </button>
           </form>
         ) : (
-          <form onSubmit={handleLoginSubmit} className="auth-form">
+          <form onSubmit={handleLoginSubmit} className="auth-form" noValidate>
             {error && <div className="error-message">{error}</div>}
             
             <div className="form-group">
@@ -642,7 +668,7 @@ const Signup = () => {
                 onChange={handleLoginChange}
                 placeholder="your.email@university.edu"
                 required
-                className={loginEmailError ? 'error' : ''}
+                className={(loginEmailError || formErrors.login_email) ? 'error' : ''}
               />
               {loginEmailError && <span className="field-error">{loginEmailError}</span>}
             </div>
@@ -657,7 +683,7 @@ const Signup = () => {
                   onChange={handleLoginChange}
                   placeholder="••••••"
                   required
-                  className={loginPasswordError ? 'error' : ''}
+                  className={(loginPasswordError || formErrors.login_password) ? 'error' : ''}
                 />
                 <button
                   type="button"
@@ -688,15 +714,17 @@ const Signup = () => {
             </div>
 
             <div className="google-login-wrapper">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                useOneTap
-                theme="outline"
-                size="large"
-                text="continue_with"
-                shape="rectangular"
-              />
+              <div className="google-login-row">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  useOneTap
+                  theme="outline"
+                  size="large"
+                  text="continue_with"
+                  shape="rectangular"
+                />
+              </div>
             </div>
           </form>
         )}

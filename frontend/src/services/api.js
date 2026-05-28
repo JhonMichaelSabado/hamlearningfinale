@@ -171,4 +171,21 @@ export const archiveAPI = {
   unarchiveItem: (archiveKey) => api.delete(`/archive/${encodeURIComponent(archiveKey)}`)
 };
 
+export const adminAPI = {
+  getSummary: () => api.get('/admin/summary'),
+  getUsers: (params = {}) => api.get('/admin/users', { params }),
+  updateUserRole: (userId, role) => api.patch(`/admin/users/${userId}/role`, { role }),
+  updateUserStatus: (userId, accountStatus) => api.patch(`/admin/users/${userId}/status`, { accountStatus }),
+  verifyTeacher: (userId, teacherVerified = true) => api.patch(`/admin/users/${userId}/verify-teacher`, { teacherVerified }),
+  getAcademicSetup: () => api.get('/admin/academic'),
+  createMajor: (payload) => api.post('/admin/majors', payload),
+  updateMajor: (majorId, payload) => api.patch(`/admin/majors/${majorId}`, payload),
+  deleteMajor: (majorId) => api.delete(`/admin/majors/${majorId}`),
+  createSemester: (payload) => api.post('/admin/semesters', payload),
+  updateSemester: (semesterId, payload) => api.patch(`/admin/semesters/${semesterId}`, payload),
+  deleteSemester: (semesterId) => api.delete(`/admin/semesters/${semesterId}`),
+  getSettings: () => api.get('/admin/settings'),
+  saveSettings: (settings) => api.patch('/admin/settings', { settings })
+};
+
 export default api;

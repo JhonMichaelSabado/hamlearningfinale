@@ -9,13 +9,16 @@
 .accessibility-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 122px;
+  padding: 10px 14px;
   border-radius: 999px; /* pill */
   background: linear-gradient(135deg, #2d7a4f 0%, #1e5a3a 100%);
   color: white;
   border: none;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transition: all 0.18s ease;
@@ -34,9 +37,10 @@
   position: absolute;
   bottom: 70px;
   right: 0;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.18);
   min-width: 240px;
   padding: 16px;
   animation: slideUp 0.3s ease-out;
@@ -65,6 +69,7 @@
 
 .accessibility-btn {
   width: 100%;
+  min-height: 42px;
   padding: 10px 12px;
   background: #f3f4f6;
   border: 1px solid #d1d5db;
@@ -81,6 +86,14 @@
   justify-content: center;
 }
 
+.accessibility-btn:focus-visible,
+.accessibility-btn-small:focus-visible,
+.accessibility-toggle:focus-visible,
+.key:focus-visible {
+  outline: 3px solid rgba(45, 122, 79, 0.45);
+  outline-offset: 2px;
+}
+
 .accessibility-btn:hover {
   background: #e5e7eb;
   border-color: #9ca3af;
@@ -93,6 +106,7 @@
 }
 
 .accessibility-btn-small {
+  min-height: 38px;
   padding: 8px 12px;
   background: #f3f4f6;
   border: 1px solid #d1d5db;
@@ -117,6 +131,17 @@
 
 .accessibility-group {
   margin-bottom: 12px;
+}
+
+.accessibility-toggle-label {
+  white-space: nowrap;
+}
+
+.accessibility-toggle-state {
+  font-size: 11px;
+  opacity: 0.85;
+  padding-left: 6px;
+  border-left: 1px solid rgba(255, 255, 255, 0.35);
 }
 
 .accessibility-group label {
@@ -276,8 +301,9 @@ body.dark-mode .magnified-text {
 
 /* Dark Mode Styles */
 body.dark-mode .accessibility-menu {
-  background: #1e293b;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  background: #0f172a;
+  border-color: #334155;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
 }
 
 body.dark-mode .accessibility-title {
@@ -304,6 +330,17 @@ body.dark-mode .accessibility-btn-small {
 body.dark-mode .accessibility-btn-small:hover:not(:disabled) {
   background: #475569;
   border-color: #64748b;
+}
+
+body.dark-mode .accessibility-btn:focus-visible,
+body.dark-mode .accessibility-btn-small:focus-visible,
+body.dark-mode .accessibility-toggle:focus-visible,
+body.dark-mode .key:focus-visible {
+  outline-color: rgba(148, 163, 184, 0.8);
+}
+
+body.dark-mode .accessibility-toggle-state {
+  border-left-color: rgba(255, 255, 255, 0.18);
 }
 
 body.dark-mode .accessibility-group label {
