@@ -1,67 +1,66 @@
 /**
- * NOTIFICATION ENGINE
- * Automated, role-based notification system for HamLearning LMS
- * Sends email notifications to all users based on their roles and activities
+ * NOTIFICATION ENGINE v2
+ * Automated, role-based notification system using Resend
+ * No personal Gmail credentials required - privacy-friendly
+ * Works seamlessly with Vercel for educational LMS
  */
 
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const supabase = require('../config/supabase');
 
-// ==================== EMAIL TRANSPORTER SETUP ====================
-const emailUser = process.env.EMAIL_USER;
-const emailPassword = process.env.EMAIL_PASSWORD;
+// ==================== RESEND EMAIL SERVICE SETUP ====================
+const resendApiKey = process.env.RESEND_API_KEY;
 
-const transporter = emailUser && emailPassword 
-  ? nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: emailUser,
-        pass: emailPassword
-      }
-    })
-  : null;
-
-if (transporter) {
-  console.log('📧 [NOTIFICATION ENGINE] Email transporter initialized');
-  transporter.verify((error) => {
-    if (error) {
-      console.error('❌ Email transporter verification failed:', error.message);
-    } else {
-      console.log('✅ Email transporter verified - notifications ready');
-    }
-  });
+let resend = null;
+if (resendApiKey) {
+  resend = new Resend(resendApiKey);
+  console.log('📧 [NOTIFICATION ENGINE] Resend email service initialized');
 } else {
-  console.warn('⚠️  [NOTIFICATION ENGINE] Email service NOT configured');
-  console.warn('   Set EMAIL_USER and EMAIL_PASSWORD environment variables');
+  console.warn('⚠️  [NOTIFICATION ENGINE] Resend API key NOT configured');
+  console.warn('   Set RESEND_API_KEY environment variable in Vercel');
 }
 
 const BRAND_COLOR = '#2d7a4f';
 const BRAND_DARK = '#1e5a3a';
+const SENDER_EMAIL = 'noreply@hamlearning.edu';
+const SENDER_NAME = 'HamLearning LMS';
 
 /**
- * Send email notification safely
- * Doesn't fail if email service is down
+ * Send email notification safely using Resend
+ * Privacy-friendly: No personal Gmail credentials needed
  */
 const sendNotification = async (to, subject, htmlContent) => {
-  if (!transporter || !to) {
-    console.warn('⚠️  Cannot send notification - missing email service or recipient');
+  if (!resend) {
+    console.warn('⚠️  Resend not configured - notification skipped');
+    console.warn('   To enable: Set RESEND_API_KEY in Vercel environment variables');
+    return { success: false };
+  }
+
+  if (!to) {
+    console.warn('⚠️  Cannot send notification - no recipient');
     return { success: false };
   }
 
   try {
-    const mailOptions = {
-      from: emailUser,
+    console.log(`📧 Sending email: "${subject}" to ${to}`);
+    
+    const result = await resend.emails.send({
+      from: `${SENDER_NAME} <${SENDER_EMAIL}>`,
       to: to,
       subject: subject,
       html: htmlContent
-    };
+    });
 
-    const result = await transporter.sendMail(mailOptions);
-    console.log(`✅ Notification sent to ${to}`);
-    return { success: true, messageId: result.messageId };
+    if (result.error) {
+      console.error(`❌ Error sending email to ${to}:`, result.error.message);
+      return { success: false, error: result.error.message };
+    }
+
+    console.log(`✅ Email sent successfully to: ${to}`);
+    console.log(`   ID: ${result.data.id}`);
+    return { success: true, messageId: result.data.id };
   } catch (error) {
-    console.error(`❌ Failed to send notification to ${to}:`, error.message);
-    // Don't throw - allow system to continue
+    console.error(`❌ Error sending notification to ${to}:`, error.message);
     return { success: false, error: error.message };
   }
 };
