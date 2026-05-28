@@ -53,8 +53,20 @@ const rawRoutes = {
 
 const normalizeRoute = (name, route) => {
   if (typeof route === 'function') return route;
-  if (route && typeof route.default === 'function') return route.default;
-  if (route && typeof route.router === 'function') return route.router;
+  if (!route || typeof route !== 'object') return route;
+
+  // Common wrappers: default, router
+  if (typeof route.default === 'function') return route.default;
+  if (typeof route.router === 'function') return route.router;
+
+  // If bundler wrapped exports as an object with the router as a property
+  // (e.g., { tasks: [Function], ... }), attempt to find the first function value.
+  for (const val of Object.values(route)) {
+    if (typeof val === 'function') return val;
+    if (val && typeof val.default === 'function') return val.default;
+    if (val && typeof val.router === 'function') return val.router;
+  }
+
   return route;
 };
 
