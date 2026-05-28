@@ -44,17 +44,28 @@ const stripAttachmentMarker = (description) => {
 };
 
 const personalUploadsDir = path.join(__dirname, '../../uploads/personal-tasks');
-if (!fs.existsSync(personalUploadsDir)) {
-  fs.mkdirSync(personalUploadsDir, { recursive: true });
+// Try to create the directory, but don't fail if it doesn't work (e.g., on serverless platforms like Vercel)
+try {
+  if (!fs.existsSync(personalUploadsDir)) {
+    fs.mkdirSync(personalUploadsDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn('Warning: Could not create uploads directory. File uploads may not work on serverless platforms.', err.message);
 }
 
 const uploadStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const userDir = path.join(personalUploadsDir, `user-${req.user.id}`);
-    if (!fs.existsSync(userDir)) {
-      fs.mkdirSync(userDir, { recursive: true });
+    try {
+      if (!fs.existsSync(userDir)) {
+        fs.mkdirSync(userDir, { recursive: true });
+      }
+      cb(null, userDir);
+    } catch (err) {
+      console.error('Error creating upload directory:', err);
+      // On serverless platforms, this might fail - return an error
+      cb(new Error('Upload directory not accessible on this platform'));
     }
-    cb(null, userDir);
   },
   filename: (req, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname}`);
