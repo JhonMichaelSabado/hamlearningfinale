@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const supabase = require('../config/supabase');
 const { verifyToken } = require('../middleware/auth');
+const { notifyStudentsOfMaterialPosted } = require('../services/notificationEngine');
 
 const router = express.Router();
 
@@ -122,6 +123,16 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
           }
         }
         return res.status(500).json({ message: 'Error posting materials', error: filesInsertError.message });
+      }
+
+      // Send notifications to all students in the class
+      try {
+        for (const file of req.files) {
+          console.log(`📧 Sending material posted notification for: ${file.originalname}`);
+          await notifyStudentsOfMaterialPosted(parseInt(classId, 10), title, file.originalname);
+        }
+      } catch (notifError) {
+        console.error('Note: Could not send notification (non-blocking):', notifError.message);
       }
 
       return res.status(201).json({

@@ -529,6 +529,108 @@ const notifyStudentsOfAnnouncement = async (classId, announcementTitle, announce
   }
 };
 
+/**
+ * NOTIFICATION 6: NEW MATERIAL POSTED
+ * Triggered when: Teacher posts materials/files to a class
+ * Recipient: All students enrolled in that class
+ */
+const notifyStudentsOfMaterialPosted = async (classId, materialTitle, materialFileName) => {
+  try {
+    console.log(`📧 [MATERIAL POSTED] ${materialTitle}`);
+
+    // Get class details
+    const { data: classData } = await supabase
+      .from('classes')
+      .select('class_name, instructor_id')
+      .eq('id', classId)
+      .single();
+
+    if (!classData) {
+      console.warn('⚠️  Class not found');
+      return;
+    }
+
+    // Get teacher info
+    const { data: teacher } = await supabase
+      .from('users')
+      .select('name')
+      .eq('id', classData.instructor_id)
+      .single();
+
+    // Get all enrolled students
+    const { data: enrollments } = await supabase
+      .from('enrollments')
+      .select('user_id')
+      .eq('class_id', classId);
+
+    if (!enrollments || enrollments.length === 0) {
+      console.log('   No students to notify');
+      return;
+    }
+
+    console.log(`   Notifying ${enrollments.length} students`);
+
+    const materialsUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/class/${classId}/files`;
+
+    // Send email to each student
+    for (const enrollment of enrollments) {
+      const { data: student } = await supabase
+        .from('users')
+        .select('email, name')
+        .eq('id', enrollment.user_id)
+        .single();
+
+      if (!student || !student.email) continue;
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: 'Segoe UI', sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; }
+            .container { max-width: 600px; margin: 0 auto; padding: 0; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+            .header { background: linear-gradient(135deg, ${BRAND_COLOR} 0%, ${BRAND_DARK} 100%); color: white; padding: 30px; text-align: center; }
+            .header h1 { margin: 0; font-size: 24px; }
+            .content { padding: 30px; }
+            .material-card { background: #f9fafb; border-left: 4px solid ${BRAND_COLOR}; padding: 20px; margin: 20px 0; border-radius: 4px; }
+            .label { font-weight: 600; color: ${BRAND_COLOR}; }
+            .button { display: inline-block; background: ${BRAND_COLOR}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 20px 0; }
+            .highlight { background: #fffbea; padding: 15px; border-left: 4px solid #f59e0b; margin: 15px 0; border-radius: 4px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            ${getEmailHeader('📚 New Material Posted', 'Study materials available')}
+            <div class="content">
+              <p>Hi ${student.name},</p>
+              <p>New materials have been posted in <strong>${classData.class_name}</strong> by ${teacher?.name || 'your instructor'}.</p>
+              
+              <div class="material-card">
+                <h3 style="margin: 0 0 12px 0; color: ${BRAND_COLOR};">📄 ${materialTitle}</h3>
+                <p style="margin: 10px 0; color: #555;">File: ${materialFileName}</p>
+                <p style="margin: 10px 0;"><span class="label">Posted:</span> ${new Date().toLocaleString()}</p>
+              </div>
+
+              <div class="highlight">
+                <strong>✓ Remember:</strong> Download and review these materials to stay updated with your coursework.
+              </div>
+
+              <p>Access all class materials in the Files & Materials section of your dashboard.</p>
+              <a href="${materialsUrl}" class="button">View Materials</a>
+            </div>
+            ${getEmailFooter()}
+          </div>
+        </body>
+        </html>
+      `;
+
+      await sendNotification(student.email, `📚 New Material: ${materialTitle}`, htmlContent);
+    }
+  } catch (error) {
+    console.error('❌ Error in notifyStudentsOfMaterialPosted:', error.message);
+  }
+};
+
 // ==================== EXPORTS ====================
 module.exports = {
   sendNotification,
@@ -537,5 +639,6 @@ module.exports = {
   notifyStudentsOfNewTask,
   notifyStudentsOfDeadline,
   notifyStudentsOfAnnouncement,
+  notifyStudentsOfMaterialPosted,
   transporter: transporter ? 'ready' : 'not-configured'
 };

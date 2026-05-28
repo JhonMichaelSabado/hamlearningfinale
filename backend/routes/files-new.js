@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const config = require('../config/config');
 const supabase = require('../config/supabase');
 const multer = require('multer');
+const { notifyStudentsOfMaterialPosted } = require('../services/notificationEngine');
 const router = express.Router();
 
 // Configure multer for file uploads
@@ -93,6 +94,14 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
       // Clean up uploaded file
       await supabase.storage.from('class-files').remove([fileName]);
       return res.status(500).json({ message: 'Database error', error: dbError.message });
+    }
+
+    // Send notification to all students in the class
+    try {
+      console.log(`📧 Sending material posted notification to class: ${classIdNum}`);
+      await notifyStudentsOfMaterialPosted(classIdNum, title, file.originalname);
+    } catch (notifError) {
+      console.error('Note: Could not send notification (non-blocking):', notifError.message);
     }
 
     res.status(201).json({ message: 'File uploaded successfully', file: fileRecord });
