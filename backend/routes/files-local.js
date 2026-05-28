@@ -7,14 +7,23 @@ const path = require('path');
 const fs = require('fs');
 const router = express.Router();
 
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, '../../uploads');
-const tempDir = path.join(uploadsDir, 'temp');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-if (!fs.existsSync(tempDir)) {
-  fs.mkdirSync(tempDir, { recursive: true });
+// Configure Vercel temp paths
+const isVercel = process.env.VERCEL === '1';
+const uploadsDir = isVercel ? '/tmp' : path.join(__dirname, '../../uploads');
+const tempDir = isVercel ? '/tmp' : path.join(uploadsDir, 'temp');
+
+// Create uploads directory if it doesn't exist (Skip on Vercel)
+try {
+  if (!isVercel) {
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+  }
+} catch (error) {
+  console.log("Running on Vercel: Skipping local top-level directory creation.");
 }
 
 // Configure multer for local disk storage
@@ -82,33 +91,43 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
     
     if (!classData) {
       // Delete uploaded file
-      fs.unlinkSync(file.path);
+      try { fs.unlinkSync(file.path); } catch (e) {}
       return res.status(404).json({ message: 'Class not found' });
     }
     
     if (classData.teacher_id !== req.user.id) {
       // Delete uploaded file
-      fs.unlinkSync(file.path);
+      try { fs.unlinkSync(file.path); } catch (e) {}
       return res.status(403).json({ message: 'Not authorized' });
     }
 
     console.log('Permission check passed');
 
     // Move file from temp to correct class directory
-    const classDir = path.join(uploadsDir, `class-${classIdNum}`);
-    if (!fs.existsSync(classDir)) {
-      fs.mkdirSync(classDir, { recursive: true });
+    const classDir = isVercel ? '/tmp' : path.join(uploadsDir, `class-${classIdNum}`);
+    
+    try {
+      if (!isVercel && !fs.existsSync(classDir)) {
+        fs.mkdirSync(classDir, { recursive: true });
+      }
+    } catch (e) {
+      console.log('Skipping class dir creation on Vercel');
     }
     
     newFilePath = path.join(classDir, file.filename);
-    fs.renameSync(file.path, newFilePath);
-    console.log('File moved from:', file.path);
-    console.log('File moved to:', newFilePath);
+    
+    try {
+      fs.renameSync(file.path, newFilePath);
+      console.log('File moved from:', file.path);
+      console.log('File moved to:', newFilePath);
+    } catch (e) {
+      console.log('Skipping rename, file remains at:', file.path);
+      newFilePath = file.path;
+    }
 
     // Create file URL (accessible via /uploads route)
     const fileUrl = `${process.env.BACKEND_URL || 'http://localhost:5000'}/uploads/class-${classIdNum}/${file.filename}`;
     console.log('Generated file URL:', fileUrl);
-    console.log('File exists at new location:', fs.existsSync(newFilePath));
 
     // Save to database (no RLS issues with direct INSERT)
     const { data: fileRecord, error: dbError } = await supabase
@@ -129,9 +148,10 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
     if (dbError) {
       console.error('Database error:', JSON.stringify(dbError, null, 2));
       // Delete uploaded file from new location
-      if (fs.existsSync(newFilePath)) {
-        fs.unlinkSync(newFilePath);
-      }
+      try {
+        if (fs.existsSync(newFilePath)) fs.unlinkSync(newFilePath);
+      } catch (e) {}
+      
       return res.status(500).json({ 
         message: 'Database error', 
         error: dbError.message 
@@ -146,13 +166,18 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
   } catch (error) {
     console.error('Upload exception:', error);
     // Clean up file - check both temp and final locations
-    if (newFilePath && fs.existsSync(newFilePath)) {
-      fs.unlinkSync(newFilePath);
-      console.log('Cleaned up file from:', newFilePath);
-    } else if (req.file?.path && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-      console.log('Cleaned up file from temp:', req.file.path);
+    try {
+      if (newFilePath && fs.existsSync(newFilePath)) {
+        fs.unlinkSync(newFilePath);
+        console.log('Cleaned up file from:', newFilePath);
+      } else if (req.file?.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+        console.log('Cleaned up file from temp:', req.file.path);
+      }
+    } catch (e) {
+      console.log("Cleanup failed, likely Vercel read-only state.");
     }
+    
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -321,9 +346,13 @@ router.delete('/:fileId', verifyToken, async (req, res) => {
     const filePath = path.join(uploadsDir, url.pathname.replace('/uploads/', ''));
 
     // Delete file from disk
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-      console.log('File deleted from disk:', filePath);
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        console.log('File deleted from disk:', filePath);
+      }
+    } catch (e) {
+      console.log('Could not delete from disk (Vercel read-only or not found)');
     }
 
     // Delete from database

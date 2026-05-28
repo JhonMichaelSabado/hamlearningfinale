@@ -10,12 +10,16 @@ const router = express.Router();
 // Configure multer for submission file uploads
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../uploads/temp');
+    const isVercel = process.env.VERCEL === '1';
+    const uploadDir = isVercel ? '/tmp' : path.join(__dirname, '../uploads/temp');
     try {
-      await fs.mkdir(uploadDir, { recursive: true });
+      if (!isVercel) {
+        await fs.mkdir(uploadDir, { recursive: true });
+      }
       cb(null, uploadDir);
     } catch (error) {
-      cb(error);
+      console.log("Skipping local directory creation on Vercel.");
+      cb(null, uploadDir);
     }
   },
   filename: (req, file, cb) => {
@@ -109,6 +113,7 @@ router.post('/submit', verifyToken, upload.array('files', 10), async (req, res) 
   try {
     const userId = req.userId;
     const { deadlineId, submissionText, submissionLink } = req.body;
+    const isVercel = process.env.VERCEL === '1';
 
     console.log('📤 Student submitting work:', { userId, deadlineId });
 
@@ -156,14 +161,21 @@ router.post('/submit', verifyToken, upload.array('files', 10), async (req, res) 
 
     // Handle file uploads
     if (req.files && req.files.length > 0) {
-      const submissionDir = path.join(
+      const submissionDir = isVercel ? '/tmp' : path.join(
         __dirname,
         '../uploads/submission-files',
         `class-${deadline.class_id}`,
         `deadline-${deadlineId}`,
         `student-${userId}`
       );
-      await fs.mkdir(submissionDir, { recursive: true });
+      
+      try {
+        if (!isVercel) {
+          await fs.mkdir(submissionDir, { recursive: true });
+        }
+      } catch(e) {
+        console.log("Skipping student submission dir creation on Vercel");
+      }
 
       const fileRecords = [];
 

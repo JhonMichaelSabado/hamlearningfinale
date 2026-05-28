@@ -10,12 +10,18 @@ const router = express.Router();
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../uploads/temp');
+    // Fallback to Vercel's allowed /tmp folder if in production
+    const isVercel = process.env.VERCEL === '1';
+    const uploadDir = isVercel ? '/tmp' : path.join(__dirname, '../uploads/temp');
+    
     try {
-      await fs.mkdir(uploadDir, { recursive: true });
+      if (!isVercel) {
+        await fs.mkdir(uploadDir, { recursive: true });
+      }
       cb(null, uploadDir);
     } catch (error) {
-      cb(error);
+      console.log("Skipping local directory creation on Vercel.");
+      cb(null, uploadDir); // Continue anyway for Vercel
     }
   },
   filename: (req, file, cb) => {
@@ -48,6 +54,7 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
     const userId = req.userId;
     const { classId, title, instructions, type, dueDate, dueTime, points, allowLateSubmission, submissionType, postKind } = req.body;
     const materialPaths = [];
+    const isVercel = process.env.VERCEL === '1';
 
     console.log('📝 Creating post:', { classId, title, type, postKind, userId });
 
@@ -73,8 +80,12 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
         return res.status(400).json({ message: 'Please choose at least one file for Files & Materials' });
       }
 
-      const classUploadDir = path.join(__dirname, '../uploads', `class-${classId}`);
-      await fs.mkdir(classUploadDir, { recursive: true });
+      const classUploadDir = isVercel ? '/tmp' : path.join(__dirname, '../uploads', `class-${classId}`);
+      try {
+        if (!isVercel) await fs.mkdir(classUploadDir, { recursive: true });
+      } catch (e) {
+        console.log("Skipping class dir creation on Vercel");
+      }
 
       const fileRecords = [];
 
@@ -158,8 +169,12 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
 
     // Handle file uploads if any
     if (req.files && req.files.length > 0) {
-      const deadlineDir = path.join(__dirname, '../uploads/deadline-files', `class-${classId}`, `deadline-${deadline.id}`);
-      await fs.mkdir(deadlineDir, { recursive: true });
+      const deadlineDir = isVercel ? '/tmp' : path.join(__dirname, '../uploads/deadline-files', `class-${classId}`, `deadline-${deadline.id}`);
+      try {
+        if (!isVercel) await fs.mkdir(deadlineDir, { recursive: true });
+      } catch (e) {
+        console.log("Skipping deadline dir creation on Vercel");
+      }
 
       const fileRecords = [];
 
