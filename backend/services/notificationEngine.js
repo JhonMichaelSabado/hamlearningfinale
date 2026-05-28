@@ -44,6 +44,8 @@ const SENDER_NAME = 'HamLearning LMS';
  * Secure: Credentials stored in encrypted environment variables
  */
 const sendNotification = async (to, subject, htmlContent) => {
+  console.log(`[SEND NOTIFICATION] Starting - To: ${to}, Subject: ${subject}`);
+  
   if (!transporter) {
     console.warn('⚠️  Email service not configured - notification skipped');
     console.warn('   To enable: Add EMAIL_USER and EMAIL_PASSWORD to Vercel');
@@ -57,6 +59,8 @@ const sendNotification = async (to, subject, htmlContent) => {
 
   try {
     console.log(`📧 Sending email: "${subject}" to ${to}`);
+    console.log(`   From: ${EMAIL_USER}`);
+    console.log(`   HTML length: ${htmlContent.length} chars`);
     
     const result = await transporter.sendMail({
       from: `${SENDER_NAME} <${EMAIL_USER}>`,
@@ -70,6 +74,7 @@ const sendNotification = async (to, subject, htmlContent) => {
     return { success: true, messageId: result.messageId };
   } catch (error) {
     console.error(`❌ Error sending email to ${to}:`, error.message);
+    console.error(`   Full error:`, error);
     return { success: false, error: error.message };
   }
 };
@@ -541,7 +546,10 @@ const notifyStudentsOfAnnouncement = async (classId, announcementTitle, announce
  */
 const notifyStudentsOfMaterialPosted = async (classId, materialTitle, materialFileName) => {
   try {
-    console.log(`📧 [MATERIAL POSTED] ${materialTitle}`);
+    console.log(`\n🚀 [MATERIAL POSTED] NOTIFICATION STARTED`);
+    console.log(`   Class ID: ${classId}`);
+    console.log(`   Title: ${materialTitle}`);
+    console.log(`   File: ${materialFileName}`);
 
     // Get class details
     const { data: classData } = await supabase
@@ -554,6 +562,7 @@ const notifyStudentsOfMaterialPosted = async (classId, materialTitle, materialFi
       console.warn('⚠️  Class not found');
       return;
     }
+    console.log(`   ✓ Class found: ${classData.class_name}`);
 
     // Get teacher info
     const { data: teacher } = await supabase
@@ -561,6 +570,8 @@ const notifyStudentsOfMaterialPosted = async (classId, materialTitle, materialFi
       .select('name')
       .eq('id', classData.instructor_id)
       .single();
+
+    console.log(`   ✓ Teacher found: ${teacher?.name || 'Unknown'}`);
 
     // Get all enrolled students
     const { data: enrollments } = await supabase
@@ -573,7 +584,7 @@ const notifyStudentsOfMaterialPosted = async (classId, materialTitle, materialFi
       return;
     }
 
-    console.log(`   Notifying ${enrollments.length} students`);
+    console.log(`   ✓ Found ${enrollments.length} students to notify`);
 
     const materialsUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/class/${classId}/files`;
 
@@ -629,10 +640,21 @@ const notifyStudentsOfMaterialPosted = async (classId, materialTitle, materialFi
         </html>
       `;
 
-      await sendNotification(student.email, `📚 New Material: ${materialTitle}`, htmlContent);
+      console.log(`   📧 Sending to: ${student.email}`);
+      const result = await sendNotification(student.email, `📚 New Material: ${materialTitle}`, htmlContent);
+      if (result.success) {
+        emailsSent++;
+      } else {
+        emailsFailed++;
+      }
     }
+    
+    console.log(`\n✅ [MATERIAL POSTED] COMPLETED`);
+    console.log(`   Emails sent: ${emailsSent}`);
+    console.log(`   Emails failed: ${emailsFailed}\n`);
   } catch (error) {
     console.error('❌ Error in notifyStudentsOfMaterialPosted:', error.message);
+    console.error('   Full error:', error);
   }
 };
 

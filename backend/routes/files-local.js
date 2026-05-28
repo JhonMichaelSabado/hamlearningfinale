@@ -163,10 +163,13 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
     console.log('=== UPLOAD COMPLETE ===');
 
     // Notify students of new material
+    console.log('\n📨 [FILES-LOCAL] Calling notification engine...');
     try {
       await notifyStudentsOfMaterialPosted(classIdNum, title, file.originalname);
+      console.log('📨 [FILES-LOCAL] Notification call completed successfully\n');
     } catch (notifyError) {
-      console.error('Error sending notifications:', notifyError.message);
+      console.error('❌ [FILES-LOCAL] Error sending notifications:', notifyError.message);
+      console.error('    Full error:', notifyError);
     }
 
     res.status(201).json({ message: 'File uploaded successfully', file: fileRecord });
