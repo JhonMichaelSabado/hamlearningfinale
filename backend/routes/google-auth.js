@@ -8,42 +8,82 @@ const router = express.Router();
 // Mounted in server.js as /api/google. Full path is /api/google/google
 router.post('/google', async (req, res) => {
   try {
+    console.log('🔵 Google auth route called');
     const { token } = req.body;
 
     if (!token) {
+      console.error('❌ No token provided in request');
       return res.status(400).json({ message: 'Google token required' });
     }
 
+    console.log('🔷 Verifying Google token...');
     // Verify Google token and get user info
-    const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
-    const googleUser = await response.json();
+    let response;
+    try {
+      response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
+      if (!response.ok) {
+        throw new Error(`Google API returned status ${response.status}`);
+      }
+    } catch (fetchError) {
+      console.error('❌ Error fetching Google token info:', fetchError.message);
+      return res.status(401).json({ message: 'Failed to verify Google token' });
+    }
+
+    let googleUser;
+    try {
+      googleUser = await response.json();
+    } catch (parseError) {
+      console.error('❌ Error parsing Google response:', parseError.message);
+      return res.status(401).json({ message: 'Invalid Google token response' });
+    }
 
     if (googleUser.error) {
+      console.error('❌ Google token validation failed:', googleUser.error_description);
       return res.status(401).json({ message: 'Invalid Google token' });
     }
 
     const { email, name, picture } = googleUser;
+    console.log('✅ Google user verified:', email);
+
+    if (!email) {
+      console.error('❌ No email in Google token');
+      return res.status(400).json({ message: 'Email not available from Google account' });
+    }
 
     // Check if user exists
-    const { data: existingUser } = await supabase
+    console.log('🔷 Checking for existing user...');
+    const { data: existingUser, error: selectError } = await supabase
       .from('users')
       .select('*')
       .eq('email', email)
       .single();
 
+    if (selectError && selectError.code !== 'PGRST116') {
+      // PGRST116 = no rows found, which is fine
+      console.error('❌ Supabase select error:', selectError);
+      return res.status(500).json({ message: 'Database error' });
+    }
+
     let user;
 
     if (existingUser) {
-      const { data: updatedUser } = await supabase
+      console.log('✅ Existing user found, updating profile picture');
+      const { data: updatedUser, error: updateError } = await supabase
         .from('users')
         .update({ profile_picture: picture })
         .eq('id', existingUser.id)
         .select()
         .single();
       
+      if (updateError) {
+        console.error('❌ Error updating user:', updateError);
+        return res.status(500).json({ message: 'Error updating user profile' });
+      }
+      
       user = updatedUser || existingUser;
     } else {
-      const { data: newUser, error } = await supabase
+      console.log('✅ New user, creating account');
+      const { data: newUser, error: insertError } = await supabase
         .from('users')
         .insert([
           {
@@ -58,21 +98,28 @@ router.post('/google', async (req, res) => {
         .select()
         .single();
 
-      if (error) {
-        console.error('Supabase error:', error);
-        return res.status(500).json({ message: 'Error creating user' });
+      if (insertError) {
+        console.error('❌ Supabase insert error:', insertError);
+        return res.status(500).json({ message: 'Error creating user account' });
       }
 
       user = newUser;
     }
 
+    if (!user) {
+      console.error('❌ User object is null after create/update');
+      return res.status(500).json({ message: 'Error processing user' });
+    }
+
     // Generate JWT token
+    console.log('🔷 Generating JWT token...');
     const jwtToken = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       config.jwtSecret,
       { expiresIn: config.jwtExpire }
     );
 
+    console.log('✅ Login successful for user:', user.email);
     res.json({
       message: 'Login successful',
       token: jwtToken,
@@ -93,8 +140,12 @@ router.post('/google', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Google auth error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ UNCAUGHT Google auth error:', error);
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred' 
+    });
   }
 });
 
