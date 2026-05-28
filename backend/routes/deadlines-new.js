@@ -218,6 +218,20 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
         console.error('❌ Error saving file records:', filesError);
       } else {
         console.log(`✅ Uploaded ${fileRecords.length} files for deadline ${deadline.id}`);
+        
+        // Send notifications to all students about deadline with files
+        console.log(`\n📨 [DEADLINE FILES] Starting notifications for ${req.files.length} file(s)`);
+        try {
+          for (const file of req.files) {
+            console.log(`📧 [DEADLINE FILES] Notifying students about: ${file.originalname}`);
+            await notifyStudentsOfMaterialPosted(parseInt(classId, 10), title, file.originalname);
+            console.log(`✅ [DEADLINE FILES] Notification sent for: ${file.originalname}`);
+          }
+          console.log(`📨 [DEADLINE FILES] All notifications completed\n`);
+        } catch (notifError) {
+          console.error('❌ [DEADLINE FILES] Error sending notifications:', notifError.message);
+          console.error('   Full error:', notifError);
+        }
       }
     }
 
