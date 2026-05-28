@@ -25,10 +25,16 @@ if (EMAIL_USER && EMAIL_PASSWORD) {
     auth: {
       user: EMAIL_USER,
       pass: EMAIL_PASSWORD
-    }
+    },
+    secure: true,
+    requireTLS: true,
+    connectionTimeout: 5000,
+    socketTimeout: 5000
   });
   console.log('📧 [NOTIFICATION ENGINE] Email service initialized');
   console.log('   From:', EMAIL_USER);
+  console.log('   Service: Gmail SMTP');
+  console.log('   Secure: true, RequireTLS: true');
 } else {
   console.warn('⚠️  [NOTIFICATION ENGINE] Email credentials NOT configured');
   console.warn('   Add EMAIL_USER and EMAIL_PASSWORD to Vercel environment variables');
@@ -61,6 +67,7 @@ const sendNotification = async (to, subject, htmlContent) => {
     console.log(`📧 Sending email: "${subject}" to ${to}`);
     console.log(`   From: ${EMAIL_USER}`);
     console.log(`   HTML length: ${htmlContent.length} chars`);
+    console.log(`   Attempting to send via Gmail SMTP...`);
     
     const result = await transporter.sendMail({
       from: `${SENDER_NAME} <${EMAIL_USER}>`,
@@ -71,10 +78,14 @@ const sendNotification = async (to, subject, htmlContent) => {
 
     console.log(`✅ Email sent successfully to: ${to}`);
     console.log(`   Message ID: ${result.messageId}`);
+    console.log(`   Response:`, JSON.stringify(result));
     return { success: true, messageId: result.messageId };
   } catch (error) {
-    console.error(`❌ Error sending email to ${to}:`, error.message);
-    console.error(`   Full error:`, error);
+    console.error(`\n❌ SMTP ERROR sending email to ${to}:`);
+    console.error(`   Code: ${error.code}`);
+    console.error(`   Command: ${error.command}`);
+    console.error(`   Message: ${error.message}`);
+    console.error(`   Full error:`, JSON.stringify(error, null, 2));
     return { success: false, error: error.message };
   }
 };
