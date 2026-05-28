@@ -38,6 +38,17 @@ if (EMAIL_USER && EMAIL_PASSWORD) {
   console.log('   From:', EMAIL_USER);
   console.log('   SMTP Host: smtp.gmail.com');
   console.log('   Port: 587 (TLS)');
+  
+  // Test the transporter immediately
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error('❌ [NOTIFICATION ENGINE] Transporter verification FAILED:');
+      console.error('   Error:', error.message);
+      console.error('   Code:', error.code);
+    } else {
+      console.log('✅ [NOTIFICATION ENGINE] Transporter verification SUCCESS - Ready to send emails!');
+    }
+  });
 } else {
   console.warn('⚠️  [NOTIFICATION ENGINE] Email credentials NOT configured');
   console.warn('   Add EMAIL_USER and EMAIL_PASSWORD to Vercel environment variables');
