@@ -34,8 +34,8 @@ app.use('/uploads', (req, res, next) => {
   next();
 }, express.static(path.join(__dirname, 'uploads')));
 
-// DIAGNOSTIC CODE: Validate routes before mounting
-const routes = {
+// DIAGNOSTIC + Normalization: Accept common bundler wrappers
+const rawRoutes = {
   authRoutes,
   googleAuthRoutes,
   classRoutes,
@@ -51,28 +51,38 @@ const routes = {
   adminRoutes
 };
 
-Object.entries(routes).forEach(([name, route]) => {
-  // Express routers are functions. If it's an object, it might be { router } instead of router.
-  if (typeof route !== 'function') {
-    throw new Error(`CRITICAL ERROR: Route '${name}' is not a valid Express router! It is of type: ${typeof route}. Ensure you are exporting 'module.exports = router' and NOT '{ router }'.`);
-  }
-});
-console.log("All routes validated successfully.");
+const normalizeRoute = (name, route) => {
+  if (typeof route === 'function') return route;
+  if (route && typeof route.default === 'function') return route.default;
+  if (route && typeof route.router === 'function') return route.router;
+  return route;
+};
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/google', googleAuthRoutes);
-app.use('/api/classes', classRoutes);
-app.use('/api/password', passwordResetRoutes);
-app.use('/api/schedules', scheduleRoutes);
-app.use('/api/deadlines', deadlineRoutes);
-app.use('/api/submissions', submissionRoutes);
-app.use('/api/grades', gradeRoutes);
-app.use('/api/tasks', taskRoutes);
-app.use('/api/files', fileRoutes);
-app.use('/api/archive', archiveRoutes);
-app.use('/api/wellness', wellnessRoutes);
-app.use('/api/admin', adminRoutes);
+const routes = {};
+Object.entries(rawRoutes).forEach(([name, route]) => {
+  const resolved = normalizeRoute(name, route);
+  if (typeof resolved !== 'function') {
+    throw new Error(`CRITICAL ERROR: Route '${name}' is not a valid Express router! It is of type: ${typeof resolved}. Ensure you are exporting 'module.exports = router' or a default/function export.`);
+  }
+  routes[name] = resolved;
+});
+
+console.log('All routes validated and normalized successfully.');
+
+// Routes (use normalized router functions from `routes`)
+app.use('/api/auth', routes.authRoutes);
+app.use('/api/google', routes.googleAuthRoutes);
+app.use('/api/classes', routes.classRoutes);
+app.use('/api/password', routes.passwordResetRoutes);
+app.use('/api/schedules', routes.scheduleRoutes);
+app.use('/api/deadlines', routes.deadlineRoutes);
+app.use('/api/submissions', routes.submissionRoutes);
+app.use('/api/grades', routes.gradeRoutes);
+app.use('/api/tasks', routes.taskRoutes);
+app.use('/api/files', routes.fileRoutes);
+app.use('/api/archive', routes.archiveRoutes);
+app.use('/api/wellness', routes.wellnessRoutes);
+app.use('/api/admin', routes.adminRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'LMS Backend API is running' });
