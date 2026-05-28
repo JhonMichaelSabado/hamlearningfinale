@@ -50,7 +50,8 @@ const rawRoutes = {
   fileRoutes,
   archiveRoutes,
   wellnessRoutes,
-  adminRoutes
+  adminRoutes,
+  diagnosticsRoutes
 };
 
 const normalizeRoute = (name, route) => {
@@ -97,7 +98,7 @@ app.use('/api/files', routes.fileRoutes);
 app.use('/api/archive', routes.archiveRoutes);
 app.use('/api/wellness', routes.wellnessRoutes);
 app.use('/api/admin', routes.adminRoutes);
-app.use('/api/diagnostics', diagnosticsRoutes);
+app.use('/api/diagnostics', routes.diagnosticsRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'LMS Backend API is running' });
