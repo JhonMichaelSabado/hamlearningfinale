@@ -4,7 +4,7 @@ import { fileAPI, deadlineAPI } from '../../services/api';
 import FileDetailModal from '../teacher-modules/FileDetailModal';
 import { filterArchivedMaterials, onArchiveChange } from '../../services/archive';
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = 'https://hamlearningfinale.vercel.app/_backend';
 
 function StudentClassFiles() {
   const { classId } = useParams();

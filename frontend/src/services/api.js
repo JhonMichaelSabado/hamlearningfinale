@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://hamlearningfinale.vercel.app/_backend';
 const API_URL = API_BASE.replace(/\/$/, '') + '/api';
 
 const api = axios.create({

@@ -19,7 +19,7 @@ const ForgotPassword = ({ onBackToLogin }) => {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/password/forgot-password', {
+      const response = await axios.post('https://hamlearningfinale.vercel.app/_backend/api/password/forgot-password', {
         email
       });
 

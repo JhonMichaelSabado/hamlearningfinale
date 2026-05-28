@@ -5,7 +5,7 @@ import FileDetailModal from './FileDetailModal';
 import { archiveMaterial, filterArchivedMaterials, isDeadlineArchived, onArchiveChange } from '../../services/archive';
 import './TeacherModules.css';
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = 'https://hamlearningfinale.vercel.app/_backend';
 
 const TeacherClassFiles = () => {
   const { classData } = useOutletContext();

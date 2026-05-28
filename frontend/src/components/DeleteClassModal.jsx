@@ -20,7 +20,7 @@ const DeleteClassModal = ({ classToDelete, onClose, onClassDeleted }) => {
     try {
       const token = localStorage.getItem('token');
       await axios.delete(
-        `http://localhost:5000/api/classes/${classToDelete.id}`,
+        `https://hamlearningfinale.vercel.app/_backend/api/classes/${classToDelete.id}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`

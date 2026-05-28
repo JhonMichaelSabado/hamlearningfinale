@@ -57,7 +57,7 @@ const Profile = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        'http://localhost:5000/api/password/change-password',
+        'https://hamlearningfinale.vercel.app/_backend/api/password/change-password',
         {
           currentPassword: isGoogleUser ? undefined : currentPassword,
           newPassword

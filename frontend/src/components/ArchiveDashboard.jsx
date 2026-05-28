@@ -51,7 +51,7 @@ const ArchiveDashboard = () => {
       if (user?.role === 'teacher') {
         if (item.source_type === 'class') {
           const token = localStorage.getItem('token');
-          await axios.delete(`http://localhost:5000/api/classes/${item.source_id}`, {
+          await axios.delete(`https://hamlearningfinale.vercel.app/_backend/api/classes/${item.source_id}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
         } else if (item.source_type === 'deadline') {

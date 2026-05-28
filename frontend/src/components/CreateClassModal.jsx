@@ -78,7 +78,7 @@ const CreateClassModal = ({ onClose, onClassCreated }) => {
       const token = localStorage.getItem('token');
       console.log('Creating class with schedules:', schedules);
       const response = await axios.post(
-        'http://localhost:5000/api/classes/create',
+        'https://hamlearningfinale.vercel.app/_backend/api/classes/create',
         {
           ...formData,
           schedules: schedules.length > 0 ? schedules : []

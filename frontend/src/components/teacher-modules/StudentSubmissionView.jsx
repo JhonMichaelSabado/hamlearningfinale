@@ -137,7 +137,7 @@ const StudentSubmissionView = ({ submission, deadline, onClose, onGraded }) => {
                       {submission.files.map((file) => (
                         <a
                           key={file.id}
-                          href={`http://localhost:5000${file.file_path}`}
+                          href={`https://hamlearningfinale.vercel.app/_backend${file.file_path}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="file-card"

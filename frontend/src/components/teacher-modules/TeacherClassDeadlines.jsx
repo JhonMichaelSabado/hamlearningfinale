@@ -123,7 +123,7 @@ const TeacherClassDeadlines = () => {
     try {
       const res = await deadlineAPI.getDeadline(deadline.id);
       const files = res.data?.deadline?.files || [];
-      const API_BASE = 'http://localhost:5000';
+      const API_BASE = 'https://hamlearningfinale.vercel.app/_backend';
       files.forEach((f) =>
         archiveMaterial({
           source_type: 'deadline_attachment',
