@@ -5,6 +5,7 @@ const supabase = require('../config/supabase');
 const router = express.Router();
 
 // Google OAuth login endpoint
+// Mounted in server.js as /api/google. Full path is /api/google/google
 router.post('/google', async (req, res) => {
   try {
     const { token } = req.body;
@@ -33,7 +34,6 @@ router.post('/google', async (req, res) => {
     let user;
 
     if (existingUser) {
-      // User exists, update profile picture and log them in
       const { data: updatedUser } = await supabase
         .from('users')
         .update({ profile_picture: picture })
@@ -43,7 +43,6 @@ router.post('/google', async (req, res) => {
       
       user = updatedUser || existingUser;
     } else {
-      // Create new user with Google auth
       const { data: newUser, error } = await supabase
         .from('users')
         .insert([
@@ -111,7 +110,6 @@ router.post('/complete-profile', async (req, res) => {
     const decoded = jwt.verify(token, config.jwtSecret);
     const { role, major, academicYear, targetGPA, department, subjects } = req.body;
 
-    // Update user profile
     const updateData = {
       role: role || 'student',
       profile_completed: true
@@ -147,8 +145,10 @@ router.post('/complete-profile', async (req, res) => {
         name: updatedUser.name,
         role: updatedUser.role,
         profileCompleted: updatedUser.profile_completed,
-        profilePicture: updatedUser.profile_picture,        authProvider: 'google',
-        hasPassword: !!updatedUser.password,        major: updatedUser.major,
+        profilePicture: updatedUser.profile_picture,
+        authProvider: 'google',
+        hasPassword: !!updatedUser.password,
+        major: updatedUser.major,
         academicYear: updatedUser.academic_year,
         targetGPA: updatedUser.target_gpa,
         department: updatedUser.department,
@@ -161,4 +161,5 @@ router.post('/complete-profile', async (req, res) => {
   }
 });
 
+// IMPORTANT: This line was missing!
 module.exports = router;

@@ -3,29 +3,32 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
+
+// Route Imports
 const authRoutes = require('./routes/auth');
 const googleAuthRoutes = require('./routes/google-auth');
 const classRoutes = require('./routes/classes');
 const passwordResetRoutes = require('./routes/password-reset');
 const scheduleRoutes = require('./routes/schedules');
-const deadlineRoutes = require('./routes/deadlines-new'); // NEW: Google Classroom-style deadlines
-const submissionRoutes = require('./routes/submissions'); // NEW: Student submissions
+const deadlineRoutes = require('./routes/deadlines-new');
+const submissionRoutes = require('./routes/submissions');
 const gradeRoutes = require('./routes/grades');
 const taskRoutes = require('./routes/tasks');
-const fileRoutes = require('./routes/files-local'); // Using local file storage
+const fileRoutes = require('./routes/files-local');
 const archiveRoutes = require('./routes/archive');
 const wellnessRoutes = require('./routes/wellness');
 const adminRoutes = require('./routes/admin');
 
 const app = express();
-const PORT = 5000;
+// Vercel assigns its own port, so we use process.env.PORT or fallback to 5000
+const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Serve uploaded files statically with proper headers
+// Serve uploaded files statically
 app.use('/uploads', (req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -34,12 +37,12 @@ app.use('/uploads', (req, res, next) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/auth', googleAuthRoutes);
+app.use('/api/google', googleAuthRoutes); // Unique path to prevent conflict
 app.use('/api/classes', classRoutes);
 app.use('/api/password', passwordResetRoutes);
 app.use('/api/schedules', scheduleRoutes);
-app.use('/api/deadlines', deadlineRoutes); // Google Classroom-style deadlines with file upload
-app.use('/api/submissions', submissionRoutes); // Student submission system
+app.use('/api/deadlines', deadlineRoutes);
+app.use('/api/submissions', submissionRoutes);
 app.use('/api/grades', gradeRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/files', fileRoutes);

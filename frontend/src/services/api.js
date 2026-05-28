@@ -28,7 +28,9 @@ export const authAPI = {
   signup: (userData) => api.post('/auth/signup', userData),
   login: (credentials) => api.post('/auth/login', credentials),
   verify: () => api.get('/auth/verify'),
-  googleLogin: (token) => api.post('/auth/google', { token }),
+  // Update this path from /auth/google to /google/google 
+  // (Assuming your google-auth route has a /google endpoint)
+  googleLogin: (token) => api.post('/google/google', { token }),
   completeProfile: (profileData) => api.post('/auth/complete-profile', profileData)
 };
 
