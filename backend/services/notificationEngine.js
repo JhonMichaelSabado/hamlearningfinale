@@ -12,6 +12,11 @@ const supabase = require('../config/supabase');
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD;
 
+console.log('🔧 [NOTIFICATION ENGINE] Initialization check:');
+console.log('   EMAIL_USER defined:', !!EMAIL_USER);
+console.log('   EMAIL_PASSWORD defined:', !!EMAIL_PASSWORD);
+console.log('   EMAIL_USER value:', EMAIL_USER ? `${EMAIL_USER.substring(0, 5)}***` : 'undefined');
+
 let transporter = null;
 
 if (EMAIL_USER && EMAIL_PASSWORD) {

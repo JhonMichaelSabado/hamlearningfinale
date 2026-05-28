@@ -6,6 +6,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const router = express.Router();
+const { notifyStudentsOfMaterialPosted } = require('../services/notificationEngine');
 
 // Configure Vercel temp paths
 const isVercel = process.env.VERCEL === '1';
@@ -160,6 +161,13 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
 
     console.log('File record saved:', fileRecord.id);
     console.log('=== UPLOAD COMPLETE ===');
+
+    // Notify students of new material
+    try {
+      await notifyStudentsOfMaterialPosted(classIdNum, title, file.originalname);
+    } catch (notifyError) {
+      console.error('Error sending notifications:', notifyError.message);
+    }
 
     res.status(201).json({ message: 'File uploaded successfully', file: fileRecord });
 
