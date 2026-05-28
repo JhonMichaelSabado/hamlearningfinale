@@ -126,13 +126,17 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
       }
 
       // Send notifications to all students in the class
+      console.log(`\n📨 [DEADLINES-NEW] Starting notifications for ${req.files.length} file(s)`);
       try {
         for (const file of req.files) {
-          console.log(`📧 Sending material posted notification for: ${file.originalname}`);
+          console.log(`📧 [DEADLINES-NEW] Notifying students about: ${file.originalname}`);
           await notifyStudentsOfMaterialPosted(parseInt(classId, 10), title, file.originalname);
+          console.log(`✅ [DEADLINES-NEW] Notification sent for: ${file.originalname}`);
         }
+        console.log(`📨 [DEADLINES-NEW] All notifications completed\n`);
       } catch (notifError) {
-        console.error('Note: Could not send notification (non-blocking):', notifError.message);
+        console.error('❌ [DEADLINES-NEW] Error sending notifications:', notifError.message);
+        console.error('   Full error:', notifError);
       }
 
       return res.status(201).json({

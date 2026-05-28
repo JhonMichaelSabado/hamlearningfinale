@@ -125,6 +125,56 @@ app.get('/api/diagnostic/notification-status', (req, res) => {
   });
 });
 
+// DIAGNOSTIC: Check enrollment and email for a student
+app.get('/api/diagnostic/student-enrollment/:email/:classId', async (req, res) => {
+  try {
+    const { email, classId } = req.params;
+    
+    // Find user by email
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, email, name')
+      .eq('email', email)
+      .single();
+
+    if (!user) {
+      return res.json({
+        status: 'diagnostic',
+        email: email,
+        classId: classId,
+        userFound: false,
+        message: `❌ User with email "${email}" not found in database`
+      });
+    }
+
+    // Check if enrolled in class
+    const { data: enrollment } = await supabase
+      .from('enrollments')
+      .select('id, class_id, user_id')
+      .eq('user_id', user.id)
+      .eq('class_id', parseInt(classId))
+      .single();
+
+    res.json({
+      status: 'diagnostic',
+      email: email,
+      classId: classId,
+      userFound: true,
+      userId: user.id,
+      userName: user.name,
+      storedEmail: user.email,
+      enrolled: !!enrollment,
+      enrollmentData: enrollment || null,
+      message: enrollment ? `✅ Student IS enrolled in class ${classId}` : `❌ Student NOT enrolled in class ${classId}`
+    });
+  } catch (error) {
+    res.json({
+      status: 'error',
+      message: error.message
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   
