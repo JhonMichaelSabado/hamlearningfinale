@@ -1,40 +1,242 @@
-# HamLearning Automated Email Notification System
+# 🚀 HamLearning LMS - Automated Notification System (v2)
 
-## Overview
+## System Overview
 
-This system provides automated email notifications for all critical LMS activities with a consistent, professional design. All emails use the HamLearning brand theme and include functional action buttons.
+A **fully automated, role-based email notification system** for all users in your Learning Management System. Notifications are triggered automatically based on user activities and sent via Gmail.
 
-## Features Implemented
+---
 
-### 1. **New Activity Posted** 📋
-- **When:** Teacher creates a new activity/task
-- **Who:** All students enrolled in the class
-- **Content:** Activity title, description, class name, instructor name
-- **Action Button:** "View Activity" - links to class activities page
+## ✅ What's Included
 
-### 2. **Deadline Reminders** ⏰
-- **When:** 24 hours before deadline (configurable)
-- **Who:** All students with pending tasks
-- **Content:** Task title, due date, time remaining, class name
-- **Frequency:** Automated, runs every hour
-- **Action Button:** "View & Submit" - links to tasks dashboard
+### Automated Notifications (5 Types)
 
-### 3. **Activity Graded** ✅
-- **When:** Teacher grades a submission
-- **Who:** The submitting student
-- **Content:** Activity title, score with percentage, instructor feedback
-- **Features:** 
-  - Displays score breakdown (e.g., "85/100 (85%)")
-  - Shows instructor feedback in a formatted box
-  - Professional score display badge
-- **Action Button:** "View Detailed Feedback"
+| Notification | Triggered When | Recipient | Purpose |
+|---|---|---|---|
+| **📬 Submission Received** | Student submits task work | Teacher | Aware of new submissions to grade |
+| **✅ Work Graded** | Teacher grades submission | Student | Know their score, feedback, progress |
+| **📚 New Assignment** | Teacher creates task | All class students | Aware of new work to complete |
+| **⏰ Deadline Reminder** | 24 hours before deadline | Students (not yet submitted) | Complete work before deadline |
+| **📢 Announcement** | Teacher posts announcement | All class students | Stay informed of important info |
 
-### 4. **Submission Received** 📤
-- **When:** Student submits an activity
-- **Who:** The teacher/instructor
-- **Content:** Student name, email, activity title, attachment name, submission preview
-- **Purpose:** Immediate notification for teacher review
-- **Action Button:** "Review Submission" - links to grading interface
+---
+
+## 🔧 Setup Requirements
+
+### 1. Gmail Configuration (Critical)
+
+You must use a **Gmail App Password**, NOT your regular Gmail password.
+
+**Steps:**
+
+1. Go to: https://myaccount.google.com/apppasswords
+2. Make sure **2-Factor Authentication is enabled** first
+3. Select:
+   - App: **Mail**
+   - Device: **Windows Computer** (or your OS)
+4. Copy the **16-character App Password**
+5. Use this in your environment variables
+
+### 2. Environment Variables (Vercel)
+
+Set these in Vercel Project Settings → Environment Variables:
+
+```
+EMAIL_USER = your.email@gmail.com
+EMAIL_PASSWORD = xxxx xxxx xxxx xxxx (the App Password from step above)
+FRONTEND_URL = https://yourdomain.vercel.app
+BACKEND_URL = https://your-api.vercel.app
+```
+
+**Testing:**
+```bash
+GET https://your-api.vercel.app/api/diagnostics/health
+GET https://your-api.vercel.app/api/diagnostics/email-status
+```
+
+---
+
+## 📧 Notification Details
+
+### 1. Submission Received Notification
+**When:** Student submits work via the Tasks dashboard
+**Recipient:** Task Teacher
+**Contains:**
+- Student name who submitted
+- Task/assignment title
+- File name (if attached)
+- Link to review submissions
+- Time submitted
+
+### 2. Work Graded Notification
+**When:** Teacher grades a student's submission
+**Recipient:** Student who submitted
+**Contains:**
+- Task title
+- Score received (e.g., 8/10)
+- Percentage grade
+- Feedback from teacher (if provided)
+- Link to dashboard
+
+### 3. New Assignment Notification
+**When:** Teacher creates a new task for a class
+**Recipient:** All students enrolled in that class
+**Contains:**
+- Assignment title
+- Due date
+- Brief description
+- Link to view full details
+- Reminder to submit on time
+
+### 4. Deadline Reminder Notification
+**When:** 24 hours before assignment deadline
+**Recipient:** Students who haven't yet submitted
+**Contains:**
+- Hours remaining until deadline
+- Assignment title
+- Exact deadline date/time
+- Urgent reminder to submit
+- Link to submit work
+
+### 5. Class Announcement Notification
+**When:** Teacher posts announcement
+**Recipient:** All students in that class
+**Contains:**
+- Announcement title
+- Message preview
+- Teacher name
+- Link to full announcement
+
+---
+
+## 🏗️ System Architecture
+
+### File Structure
+
+```
+backend/
+├── services/
+│   ├── notificationEngine.js  ← Main notification system
+│   └── deadlineReminderJob.js ← Background job for reminders
+├── routes/
+│   ├── tasks.js              ← Triggers notifications
+│   └── diagnostics.js        ← Testing endpoints
+└── server.js                 ← Initializes deadline job
+```
+
+---
+
+## 🧪 Testing Notifications
+
+### Test 1: Check Email Service Status
+```bash
+GET https://your-api.vercel.app/api/diagnostics/email-status
+```
+
+Response should show:
+```json
+{
+  "email_service": {
+    "configured": true,
+    "email_user": "✓ Set to: your.email@gmail.com",
+    "email_password": "✓ Set (length: 16)"
+  }
+}
+```
+
+### Test 2: Send Test Email
+```bash
+POST https://your-api.vercel.app/api/diagnostics/test-email
+Content-Type: application/json
+
+{
+  "to": "test@example.com"
+}
+```
+
+Should receive test email with HamLearning branding
+
+### Test 3: Full Flow Test
+
+1. **Create a class** with students enrolled
+2. **Create an assignment** with a due date
+   - Check that all students receive "📚 New Assignment" email
+3. **Student submits work**
+   - Check that teacher receives "📬 New Submission" email
+4. **Teacher grades submission**
+   - Check that student receives "✅ Work Graded" email with score/feedback
+
+---
+
+## 🔍 Debugging
+
+### Common Issues
+
+#### Issue: Notifications not being sent
+**Check:**
+1. Run `/api/diagnostics/health` - should return `{ "status": "ok" }`
+2. Run `/api/diagnostics/email-status` - check EMAIL_USER and EMAIL_PASSWORD
+3. Run `/api/diagnostics/test-email` - verify test email is received
+
+#### Issue: "Email service not configured"
+**Solution:**
+1. Verify EMAIL_USER is set in Vercel (must be @gmail.com address)
+2. Verify EMAIL_PASSWORD is 16-character App Password (NOT regular password)
+3. Check Vercel logs for error messages
+
+#### Issue: Emails go to spam folder
+**Solutions:**
+- Add sender to contacts: Set up emails from HamLearning address to trusted
+- Check Gmail filter rules
+- Report as "Not Spam" in Gmail
+
+### Vercel Logs
+
+Check real-time logs in Vercel dashboard:
+- Settings → Functions & Observability → Runtime Logs
+- Search for: "NOTIFICATION", "EMAIL", "📧"
+
+---
+
+## 🚀 Installation Checklist
+
+- [ ] Set EMAIL_USER in Vercel (Gmail address)
+- [ ] Set EMAIL_PASSWORD in Vercel (16-char App Password)
+- [ ] Set FRONTEND_URL in Vercel
+- [ ] Set BACKEND_URL in Vercel
+- [ ] Test `/api/diagnostics/health` - should return OK
+- [ ] Test `/api/diagnostics/email-status` - should show configured
+- [ ] Test `/api/diagnostics/test-email` - should receive test email
+- [ ] Create test class with students
+- [ ] Create test assignment - verify students get email
+- [ ] Submit test work - verify teacher gets email
+- [ ] Grade test work - verify student gets email
+
+---
+
+## 📊 Features
+
+✅ **Fully Automated** - Notifications trigger automatically on user actions
+✅ **Role-Based** - Different notifications for teachers vs students
+✅ **Professional Design** - HamLearning branded emails with colors
+✅ **Non-Blocking** - Email failures don't crash the application
+✅ **Comprehensive** - Covers all major LMS activities
+✅ **Production-Ready** - Works for all users in your system
+
+---
+
+## 🚀 Future Enhancements
+
+- [ ] SMS notifications for critical deadlines
+- [ ] In-app notification center (besides email)
+- [ ] Customizable notification preferences per user
+- [ ] Notification digest (daily/weekly summary)
+- [ ] Parent/guardian notifications for student progress
+- [ ] Slack integration for teachers
+- [ ] Push notifications for mobile app
+
+---
+
+**© 2025 HamLearning LMS - Automated Notification System**
 
 ---
 

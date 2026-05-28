@@ -5,19 +5,8 @@ const supabase = require('../config/supabase');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const nodemailer = require('nodemailer');
-const { notifySubmissionReceived, notifyActivityGraded } = require('../services/emailService');
+const { notifyTeacherOfSubmission, notifyStudentOfGrade, notifyStudentsOfNewTask } = require('../services/notificationEngine');
 const router = express.Router();
-
-const transporter = process.env.EMAIL_USER && process.env.EMAIL_PASSWORD 
-  ? nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD
-      }
-    })
-  : { sendMail: () => console.log("Email service not configured - skipping email") };
 
 const ATTACHMENT_MARKER = '__TASK_ATTACHMENT__:';
 
@@ -242,12 +231,13 @@ router.post('/personal', verifyToken, async (req, res) => {
           `
         };
 
-        await transporter.sendMail(mailOptions);
-        console.log('Task creation email sent to:', user.email);
+        const { sendNotification } = require('../services/notificationEngine');
+        await sendNotification(user.email, `Task Created: ${title}`, mailOptions.html);
+        console.log('✅ Task creation notification sent to:', user.email);
       }
     } catch (emailError) {
-      console.error('Error sending task email:', emailError);
-      // Don't fail the task creation if email fails
+      console.warn('Note: Could not send notification (non-blocking):', emailError.message);
+      // Don't fail the task creation if notification fails
     }
 
     res.status(201).json(newTask);
@@ -424,6 +414,15 @@ router.post('/teacher', verifyToken, async (req, res) => {
     }
 
     res.status(201).json(newTask);
+
+    // Send notification to all students in the class
+    try {
+      console.log(`📧 Sending new task notification to class: ${classId}`);
+      await notifyStudentsOfNewTask(newTask.id, classId, newTask.title, newTask.description, newTask.due_date);
+    } catch (notifError) {
+      console.error('Note: Could not send notification (non-blocking):', notifError.message);
+    }
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -656,7 +655,8 @@ router.post('/submit/:taskId', verifyToken, async (req, res) => {
 
       // Notify teacher of resubmission
       console.log(`📧 Triggering notification to teacher (ID: ${task.teacher_id})...`);
-      await notifySubmissionReceived(task.id, req.user.id, task.teacher_id, fileName, submissionText);
+      const { data: submitter } = await supabase.from('users').select('name').eq('id', req.user.id).single();
+      await notifyTeacherOfSubmission(task.id, req.user.id, submitter?.name || 'A student', fileName);
 
       return res.json(updatedSubmission);
     } else {
@@ -686,7 +686,8 @@ router.post('/submit/:taskId', verifyToken, async (req, res) => {
 
       // Notify teacher of submission
       console.log(`📧 Triggering notification to teacher (ID: ${task.teacher_id})...`);
-      await notifySubmissionReceived(task.id, req.user.id, task.teacher_id, fileName, submissionText);
+      const { data: submitter } = await supabase.from('users').select('name').eq('id', req.user.id).single();
+      await notifyTeacherOfSubmission(task.id, req.user.id, submitter?.name || 'A student', fileName);
 
       return res.status(201).json(newSubmission);
     }
@@ -798,15 +799,15 @@ router.patch('/submission/:submissionId/grade', verifyToken, async (req, res) =>
     console.log(`✓ Submission graded`);
 
     // Notify student that their activity has been graded
-    if (updatedSubmission) {
+    if (updatedSubmission && score !== undefined) {
       console.log(`📧 Triggering notification to student (ID: ${updatedSubmission.student_id})...`);
-      await notifyActivityGraded(
+      await notifyStudentOfGrade(
         submissionId,
         updatedSubmission.student_id,
         updatedSubmission.task_id,
         updatedSubmission.score,
-        updatedSubmission.feedback,
-        submission.tasks.max_score
+        submission.tasks.max_score,
+        updatedSubmission.feedback
       );
     }
 
