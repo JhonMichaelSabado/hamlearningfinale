@@ -6,6 +6,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const nodemailer = require('nodemailer');
+const { notifySubmissionReceived, notifyActivityGraded } = require('../services/emailService');
 const router = express.Router();
 
 const transporter = process.env.EMAIL_USER && process.env.EMAIL_PASSWORD 
@@ -639,6 +640,9 @@ router.post('/submit/:taskId', verifyToken, async (req, res) => {
         return res.status(500).json({ message: 'Error updating submission' });
       }
 
+      // Notify teacher of resubmission
+      await notifySubmissionReceived(task.id, req.user.id, task.teacher_id, fileName, submissionText);
+
       return res.json(updatedSubmission);
     } else {
       // Create new submission
@@ -660,6 +664,9 @@ router.post('/submit/:taskId', verifyToken, async (req, res) => {
         console.error('Supabase error:', error);
         return res.status(500).json({ message: 'Error creating submission' });
       }
+
+      // Notify teacher of submission
+      await notifySubmissionReceived(task.id, req.user.id, task.teacher_id, fileName, submissionText);
 
       return res.status(201).json(newSubmission);
     }
@@ -759,6 +766,18 @@ router.patch('/submission/:submissionId/grade', verifyToken, async (req, res) =>
     if (error) {
       console.error('Supabase error:', error);
       return res.status(500).json({ message: 'Error grading submission' });
+    }
+
+    // Notify student that their activity has been graded
+    if (updatedSubmission) {
+      await notifyActivityGraded(
+        submissionId,
+        updatedSubmission.student_id,
+        updatedSubmission.task_id,
+        updatedSubmission.score,
+        updatedSubmission.feedback,
+        submission.tasks.max_score
+      );
     }
 
     res.json(updatedSubmission);

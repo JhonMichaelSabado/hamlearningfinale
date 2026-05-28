@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
+const { initializeDeadlineReminders } = require('./services/deadlineReminderJob');
 
 // Route Imports
 const authRoutes = require('./routes/auth');
@@ -102,4 +103,7 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  
+  // Initialize background jobs
+  initializeDeadlineReminders();
 });
