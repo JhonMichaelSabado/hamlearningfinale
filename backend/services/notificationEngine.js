@@ -6,7 +6,7 @@
  */
 
 const nodemailer = require('nodemailer');
-const supabase = require('../config/supabase');
+const supabaseAdmin = require('../config/supabase-admin'); // Use service role for backend access
 
 // ==================== EMAIL SERVICE SETUP ====================
 const EMAIL_USER = process.env.EMAIL_USER;
@@ -135,7 +135,7 @@ const notifyTeacherOfSubmission = async (taskId, studentId, studentName, fileNam
     console.log(`📧 [NOTIFY TEACHER] Task submission from ${studentName}`);
 
     // Get task details
-    const { data: task } = await supabase
+    const { data: task } = await supabaseAdmin
       .from('tasks')
       .select('id, title, class_id, teacher_id')
       .eq('id', taskId)
@@ -147,7 +147,7 @@ const notifyTeacherOfSubmission = async (taskId, studentId, studentName, fileNam
     }
 
     // Get teacher email
-    const { data: teacher } = await supabase
+    const { data: teacher } = await supabaseAdmin
       .from('users')
       .select('email, name')
       .eq('id', task.teacher_id)
@@ -215,7 +215,7 @@ const notifyStudentOfGrade = async (submissionId, studentId, taskId, score, maxS
     console.log(`📧 [NOTIFY STUDENT] Work graded - Score: ${score}/${maxScore}`);
 
     // Get student email
-    const { data: student } = await supabase
+    const { data: student } = await supabaseAdmin
       .from('users')
       .select('email, name')
       .eq('id', studentId)
@@ -227,7 +227,7 @@ const notifyStudentOfGrade = async (submissionId, studentId, taskId, score, maxS
     }
 
     // Get task details
-    const { data: task } = await supabase
+    const { data: task } = await supabaseAdmin
       .from('tasks')
       .select('title, class_id')
       .eq('id', taskId)
@@ -304,7 +304,7 @@ const notifyStudentsOfNewTask = async (taskId, classId, taskTitle, taskDescripti
     console.log(`📧 [NOTIFY CLASS] New task: ${taskTitle}`);
 
     // Get class details
-    const { data: classData } = await supabase
+    const { data: classData } = await supabaseAdmin
       .from('classes')
       .select('class_name, instructor_id')
       .eq('id', classId)
@@ -316,7 +316,7 @@ const notifyStudentsOfNewTask = async (taskId, classId, taskTitle, taskDescripti
     }
 
     // Get all enrolled students
-    const { data: enrollments } = await supabase
+    const { data: enrollments } = await supabaseAdmin
       .from('enrollments')
       .select('user_id')
       .eq('class_id', classId);
@@ -339,7 +339,7 @@ const notifyStudentsOfNewTask = async (taskId, classId, taskTitle, taskDescripti
 
     // Send email to each student
     for (const enrollment of enrollments) {
-      const { data: student } = await supabase
+      const { data: student } = await supabaseAdmin
         .from('users')
         .select('email, name')
         .eq('id', enrollment.user_id)
@@ -405,7 +405,7 @@ const notifyStudentsOfDeadline = async (taskId, hoursUntilDeadline) => {
     console.log(`📧 [DEADLINE REMINDER] ${hoursUntilDeadline} hours until deadline`);
 
     // Get task details
-    const { data: task } = await supabase
+    const { data: task } = await supabaseAdmin
       .from('tasks')
       .select('title, due_date, class_id')
       .eq('id', taskId)
@@ -417,7 +417,7 @@ const notifyStudentsOfDeadline = async (taskId, hoursUntilDeadline) => {
     }
 
     // Get all students in the class
-    const { data: enrollments } = await supabase
+    const { data: enrollments } = await supabaseAdmin
       .from('enrollments')
       .select('user_id')
       .eq('class_id', task.class_id);
@@ -430,7 +430,7 @@ const notifyStudentsOfDeadline = async (taskId, hoursUntilDeadline) => {
     const taskUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/tasks`;
 
     for (const enrollment of enrollments) {
-      const { data: student } = await supabase
+      const { data: student } = await supabaseAdmin
         .from('users')
         .select('email, name')
         .eq('id', enrollment.user_id)
@@ -439,7 +439,7 @@ const notifyStudentsOfDeadline = async (taskId, hoursUntilDeadline) => {
       if (!student || !student.email) continue;
 
       // Check if student has already submitted
-      const { data: submission } = await supabase
+      const { data: submission } = await supabaseAdmin
         .from('task_submissions')
         .select('id')
         .eq('task_id', taskId)
@@ -504,7 +504,7 @@ const notifyStudentsOfAnnouncement = async (classId, announcementTitle, announce
     console.log(`📧 [ANNOUNCEMENT] ${announcementTitle}`);
 
     // Get all enrolled students
-    const { data: enrollments } = await supabase
+    const { data: enrollments } = await supabaseAdmin
       .from('enrollments')
       .select('user_id')
       .eq('class_id', classId);
@@ -516,7 +516,7 @@ const notifyStudentsOfAnnouncement = async (classId, announcementTitle, announce
     const dashboardUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard`;
 
     for (const enrollment of enrollments) {
-      const { data: student } = await supabase
+      const { data: student } = await supabaseAdmin
         .from('users')
         .select('email, name')
         .eq('id', enrollment.user_id)
@@ -581,23 +581,33 @@ const notifyStudentsOfMaterialPosted = async (classId, materialTitle, materialFi
   
   try {
     console.log(`[NOTIFY_MATERIAL] Step 1: Getting class details...`);
+    console.log(`   Querying: SELECT class_name, instructor_id FROM classes WHERE id = ${classId}`);
 
     // Get class details
-    const { data: classData } = await supabase
+    const { data: classData, error: classError } = await supabaseAdmin
       .from('classes')
       .select('class_name, instructor_id')
       .eq('id', classId)
       .single();
 
+    if (classError) {
+      console.error('❌ [NOTIFY_MATERIAL] Supabase error querying class:');
+      console.error('   Code:', classError.code);
+      console.error('   Message:', classError.message);
+      console.error('   Details:', classError.details);
+      return;
+    }
+
     if (!classData) {
       console.warn('⚠️  [NOTIFY_MATERIAL] Class not found in database');
+      console.warn('   Query returned null - class may not exist or RLS policy blocked access');
       return;
     }
     console.log(`✓ [NOTIFY_MATERIAL] Class found: ${classData.class_name}`);
     
     // Get teacher info
     console.log(`[NOTIFY_MATERIAL] Step 2: Getting teacher info...`);
-    const { data: teacher } = await supabase
+    const { data: teacher } = await supabaseAdmin
       .from('users')
       .select('name')
       .eq('id', classData.instructor_id)
@@ -607,7 +617,7 @@ const notifyStudentsOfMaterialPosted = async (classId, materialTitle, materialFi
 
     // Get all enrolled students
     console.log(`[NOTIFY_MATERIAL] Step 3: Getting enrolled students...`);
-    const { data: enrollments } = await supabase
+    const { data: enrollments } = await supabaseAdmin
       .from('enrollments')
       .select('user_id')
       .eq('class_id', classId);
@@ -628,7 +638,7 @@ const notifyStudentsOfMaterialPosted = async (classId, materialTitle, materialFi
     
     for (const enrollment of enrollments) {
       console.log(`   [NOTIFY_MATERIAL] Querying student ${enrollment.user_id}...`);
-      const { data: student } = await supabase
+      const { data: student } = await supabaseAdmin
         .from('users')
         .select('email, name')
         .eq('id', enrollment.user_id)
