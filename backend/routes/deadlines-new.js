@@ -95,7 +95,7 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
           
           // Upload to Supabase Storage
           const { data: uploadedFile, error: uploadError } = await supabaseAdmin.storage
-            .from('files')
+            .from('class-files')
             .upload(storagePath, fileBuffer, {
               contentType: file.mimetype,
               upsert: false
@@ -108,7 +108,7 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
 
           // Get public URL
           const { data: publicUrl } = supabaseAdmin.storage
-            .from('files')
+            .from('class-files')
             .getPublicUrl(storagePath);
 
           console.log(`✅ Material uploaded to Supabase Storage: ${publicUrl.publicUrl}`);
@@ -222,7 +222,7 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
           
           // Upload to Supabase Storage
           const { data: uploadedFile, error: uploadError } = await supabaseAdmin.storage
-            .from('files')
+            .from('class-files')
             .upload(storagePath, fileBuffer, {
               contentType: file.mimetype,
               upsert: false
@@ -235,7 +235,7 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
 
           // Get public URL
           const { data: publicUrl } = supabaseAdmin.storage
-            .from('files')
+            .from('class-files')
             .getPublicUrl(storagePath);
 
           console.log(`✅ File uploaded to Supabase Storage: ${publicUrl.publicUrl}`);

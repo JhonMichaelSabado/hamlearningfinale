@@ -110,7 +110,7 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
       
       // Upload to Supabase Storage
       const { data: uploadedFile, error: uploadError } = await supabaseAdmin.storage
-        .from('files')
+        .from('class-files')
         .upload(storagePath, fileBuffer, {
           contentType: file.mimetype,
           upsert: false
@@ -124,7 +124,7 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
 
       // Get public URL
       const { data: publicUrl } = supabaseAdmin.storage
-        .from('files')
+        .from('class-files')
         .getPublicUrl(storagePath);
 
       const fileUrl = publicUrl.publicUrl;
