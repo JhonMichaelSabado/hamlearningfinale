@@ -31,7 +31,7 @@ export const authAPI = {
   // Update this path from /auth/google to /google/google 
   // (Assuming your google-auth route has a /google endpoint)
   googleLogin: (token) => api.post('/google/google', { token }),
-  completeProfile: (profileData) => api.post('/auth/complete-profile', profileData)
+  completeProfile: (profileData) => api.post('/google/complete-profile', profileData)
 };
 
 export const classAPI = {
