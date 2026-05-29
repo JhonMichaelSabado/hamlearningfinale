@@ -197,11 +197,14 @@
 
 .add-task-form {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 14px;
   margin-bottom: 24px;
-  padding: 16px;
-  background: #f8f9fa;
-  border-radius: 12px;
+  padding: 20px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 18px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
 }
 
 .task-form-inputs {
@@ -221,33 +224,107 @@
 
 .task-input {
   flex: 1;
-  padding: 12px 16px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  padding: 13px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
   font-size: 14px;
-  transition: border-color 0.2s;
+  transition: all 0.2s ease;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .task-input:focus {
   outline: none;
-  border-color: #1e5a3a;
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
+}
+
+.task-textarea {
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  padding: 13px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.task-textarea:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
+}
+
+.task-file-upload-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.task-file-upload-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  letter-spacing: 0.2px;
+}
+
+.task-file-upload-row small {
+  color: #64748b;
+}
+
+.task-datetime-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.task-datetime-inputs .task-input {
+  width: 100%;
 }
 
 .btn-save-task {
-  background: #4CAF50;
+  align-self: flex-end;
+  min-width: 160px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
   border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
+  padding: 13px 22px;
+  border-radius: 12px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  box-shadow: 0 10px 18px rgba(5, 150, 105, 0.18);
 }
 
 .btn-save-task:hover {
-  background: #45a049;
-  transform: translateY(-2px);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 22px rgba(5, 150, 105, 0.24);
+}
+
+.btn-save-task:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  .task-datetime-inputs {
+    grid-template-columns: 1fr;
+  }
+
+  .btn-save-task {
+    width: 100%;
+    align-self: stretch;
+  }
 }
 
 .empty-tasks {
