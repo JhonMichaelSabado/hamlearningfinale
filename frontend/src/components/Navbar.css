@@ -21,6 +21,17 @@
   padding-left: 40px;
 }
 
+/* When the admin/dashboard shell (with a left sidebar) is present,
+   align the navbar brand with the main content by offsetting the logo
+   by the sidebar width. Keep this only on wide screens where the
+   sidebar is visible. */
+@media (min-width: 1100px) {
+  .admin-dashboard-shell .navbar-left {
+    /* sidebar width (280px) + default navbar left padding (40px) */
+    padding-left: calc(280px + 40px) !important;
+  }
+}
+
 .navbar-brand {
   display: flex;
   align-items: center;
