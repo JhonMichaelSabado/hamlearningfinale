@@ -7,9 +7,18 @@ const JoinClass = ({ onClassJoined }) => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
 
+  const sanitizeClassCode = (value) => String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+
   const handleJoin = async () => {
-    if (!classCode.trim()) {
+    const normalizedCode = sanitizeClassCode(classCode);
+
+    if (!normalizedCode) {
       setMessage({ text: 'Please enter a class code', type: 'error' });
+      return;
+    }
+
+    if (!/^[A-Z0-9]{5,8}$/.test(normalizedCode)) {
+      setMessage({ text: 'Class code must be 5-8 letters or numbers only.', type: 'error' });
       return;
     }
 
@@ -17,8 +26,8 @@ const JoinClass = ({ onClassJoined }) => {
     setMessage({ text: '', type: '' });
 
     try {
-      console.log(`🔍 Attempting to join class with code: ${classCode}`);
-      const response = await classAPI.joinClass(classCode);
+      console.log(`🔍 Attempting to join class with code: ${normalizedCode}`);
+      const response = await classAPI.joinClass(normalizedCode);
       console.log('✅ Successfully joined class:', response.data);
       console.log('📅 Class schedules should now appear on your calendar!');
       
@@ -66,6 +75,41 @@ const JoinClass = ({ onClassJoined }) => {
     }
   };
 
+  const handleClassCodeChange = (event) => {
+    setClassCode(sanitizeClassCode(event.target.value));
+  };
+
+  const handleClassCodeBeforeInput = (event) => {
+    const nextValue = sanitizeClassCode(event.data);
+    if (event.inputType === 'insertText' && event.data && !nextValue) {
+      event.preventDefault();
+      return;
+    }
+
+    const currentValue = sanitizeClassCode(classCode);
+    const selectionStart = event.target.selectionStart ?? currentValue.length;
+    const selectionEnd = event.target.selectionEnd ?? currentValue.length;
+    const prospective = sanitizeClassCode(
+      currentValue.slice(0, selectionStart) + (event.data || '') + currentValue.slice(selectionEnd)
+    );
+
+    if (prospective.length > 8) {
+      event.preventDefault();
+    }
+  };
+
+  const handleClassCodePaste = (event) => {
+    const pastedText = event.clipboardData.getData('text');
+    const sanitized = sanitizeClassCode(pastedText);
+    if (!sanitized) {
+      event.preventDefault();
+      return;
+    }
+
+    event.preventDefault();
+    setClassCode((current) => sanitizeClassCode(current + sanitized));
+  };
+
   return (
     <div className="join-class-container">
       <div className="join-class-content">
@@ -93,10 +137,19 @@ const JoinClass = ({ onClassJoined }) => {
               type="text"
               className="class-code-input"
               value={classCode}
-              onChange={(e) => setClassCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+              onChange={handleClassCodeChange}
+              onBeforeInput={handleClassCodeBeforeInput}
+              onPaste={handleClassCodePaste}
               onKeyPress={handleKeyPress}
               placeholder="N144A"
               maxLength={8}
+              minLength={5}
+              inputMode="text"
+              autoComplete="off"
+              spellCheck={false}
+              autoCapitalize="characters"
+              pattern="[A-Za-z0-9]{5,8}"
+              data-input-rule="class-code"
               disabled={loading}
             />
           </div>

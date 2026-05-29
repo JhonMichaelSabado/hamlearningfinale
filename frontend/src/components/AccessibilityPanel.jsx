@@ -244,9 +244,28 @@ const AccessibilityPanel = () => {
     return 'Used for typing text.';
   };
 
+  const isClassCodeField = (target) => {
+    if (!target) return false;
+    return (
+      target.dataset?.inputRule === 'class-code' ||
+      target.classList?.contains('class-code-input') ||
+      String(getFieldLabel(target)).toLowerCase().includes('class code')
+    );
+  };
+
+  const sanitizeClassCodeText = (value) => String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+
   const insertText = (text) => {
     const element = focusedInput || document.activeElement;
     if (element && (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA')) {
+      if (isClassCodeField(element)) {
+        if (text === '\b') {
+          // let backspace through below
+        } else if (text === ' ' || !/^[a-zA-Z0-9]$/.test(text)) {
+          return;
+        }
+      }
+
       // Safely obtain selection positions. Some input types (e.g. type="email")
       // may not expose selectionStart/selectionEnd or may throw — fall back to
       // appending at the end in that case.
@@ -291,6 +310,17 @@ const AccessibilityPanel = () => {
           out = shouldUppercase ? text.toUpperCase() : text.toLowerCase();
         } else if (shift && SHIFT_SYMBOLS[text]) {
           out = SHIFT_SYMBOLS[text];
+        }
+
+        if (isClassCodeField(element)) {
+          out = sanitizeClassCodeText(out);
+          const availableSpace = Math.max(0, 8 - (element.value.length - (endPos - startPos)));
+          out = out.slice(0, availableSpace);
+          if (!out) {
+            if (shift && text !== 'Shift') setShift(false);
+            try { element.focus(); } catch (e) {}
+            return;
+          }
         }
 
         // Insert/append based on computed positions
