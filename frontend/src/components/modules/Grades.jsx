@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { gradeAPI } from '../../services/api';
+import ConfirmModal from '../ConfirmModal';
 import './Module.css';
 
 const Grades = () => {
@@ -11,6 +12,7 @@ const Grades = () => {
   const [maxScore, setMaxScore] = useState('100');
   const [customSubject, setCustomSubject] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
+  const [gradeToDelete, setGradeToDelete] = useState(null);
 
   const commonSubjects = [
     'Math', 'Science', 'English', 'History', 
@@ -112,17 +114,27 @@ const Grades = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this grade entry?')) {
-      return;
-    }
+    const grade = grades.find((entry) => entry.id === id);
+    if (!grade) return;
+
+    setGradeToDelete(grade);
+  };
+
+  const confirmDelete = async () => {
+    if (!gradeToDelete) return;
 
     try {
-      await gradeAPI.deleteGrade(id);
+      await gradeAPI.deleteGrade(gradeToDelete.id);
       await fetchGrades();
+      setGradeToDelete(null);
     } catch (error) {
       console.error('Error deleting grade:', error);
       setError('Failed to delete grade');
     }
+  };
+
+  const cancelDelete = () => {
+    setGradeToDelete(null);
   };
 
   const getGradeColor = (percentage) => {
@@ -352,6 +364,16 @@ const Grades = () => {
         </div>
       </div>
 
+      <ConfirmModal
+        isOpen={!!gradeToDelete}
+        title="Delete Grade Entry"
+        message={`Are you sure you want to delete ${gradeToDelete ? `"${gradeToDelete.title || 'this grade'}"` : 'this grade'}? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
+
       <style jsx>{`
         .calculator-layout {
           display: grid;
@@ -370,7 +392,7 @@ const Grades = () => {
         }
 
         .calculator-display {
-          background: #1e5a3a;
+          background: linear-gradient(135deg, #166534 0%, #22c55e 100%);
           border-radius: 12px;
           padding: 20px;
           color: white;
@@ -432,13 +454,13 @@ const Grades = () => {
         }
 
         .subject-btn:hover {
-          border-color: #3b82f6;
-          color: #3b82f6;
+          border-color: #16a34a;
+          color: #16a34a;
         }
 
         .subject-btn.active {
-          background: #3b82f6;
-          border-color: #3b82f6;
+          background: #16a34a;
+          border-color: #16a34a;
           color: white;
         }
 
@@ -454,14 +476,14 @@ const Grades = () => {
         .custom-subject-input input {
           width: 100%;
           padding: 12px;
-          border: 2px solid #3b82f6;
+          border: 2px solid #16a34a;
           border-radius: 8px;
           font-size: 14px;
         }
 
         .custom-subject-input input:focus {
           outline: none;
-          border-color: #2563eb;
+          border-color: #15803d;
         }
 
         .max-score-input {
@@ -492,7 +514,7 @@ const Grades = () => {
 
         .max-score-input input:focus {
           outline: none;
-          border-color: #3b82f6;
+          border-color: #16a34a;
         }
 
         .number-pad {
@@ -516,7 +538,7 @@ const Grades = () => {
 
         .num-btn:hover {
           background: #f9fafb;
-          border-color: #3b82f6;
+          border-color: #16a34a;
         }
 
         .num-btn:active {
@@ -572,7 +594,7 @@ const Grades = () => {
         }
 
         .average-display {
-          background: #1e5a3a;
+          background: linear-gradient(135deg, #14532d 0%, #22c55e 100%);
           color: white;
           padding: 30px;
           border-radius: 16px;
@@ -645,10 +667,10 @@ const Grades = () => {
         }
 
         .subject-group {
-          border: 2px solid #e5e7eb;
+          border: 2px solid #bbf7d0;
           border-radius: 12px;
           padding: 15px;
-          background: #f9fafb;
+          background: #f0fdf4;
         }
 
         .subject-header {
@@ -657,7 +679,7 @@ const Grades = () => {
           align-items: center;
           margin-bottom: 12px;
           padding-bottom: 10px;
-          border-bottom: 2px solid #e5e7eb;
+          border-bottom: 2px solid #bbf7d0;
         }
 
         .subject-name {
@@ -676,7 +698,7 @@ const Grades = () => {
           justify-content: space-between;
           align-items: center;
           padding: 12px;
-          background: white;
+          background: #ffffff;
           border-radius: 8px;
           margin-bottom: 8px;
           transition: all 0.2s;
@@ -707,7 +729,7 @@ const Grades = () => {
         .delete-btn-small {
           background: none;
           border: none;
-          color: #ef4444;
+          color: #16a34a;
           font-size: 18px;
           cursor: pointer;
           opacity: 0.5;

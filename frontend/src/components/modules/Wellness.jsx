@@ -789,9 +789,9 @@ const Wellness = () => {
         body.dark-mode .tip-card,
         body.dark-mode .empty-history,
         body.dark-mode .history-entry {
-          background: #0f172a;
-          border-color: #334155;
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+          background: #0f172a !important;
+          border-color: #334155 !important;
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35) !important;
         }
 
         body.dark-mode .journal-section h3,
@@ -801,7 +801,7 @@ const Wellness = () => {
         body.dark-mode .entry-content,
         body.dark-mode .entry-date,
         body.dark-mode .mood-label {
-          color: #ffffff;
+          color: #ffffff !important;
         }
 
         body.dark-mode .section-hint,
@@ -810,37 +810,37 @@ const Wellness = () => {
         body.dark-mode .empty-history p,
         body.dark-mode .encouragement-box p,
         body.dark-mode .history-intro p {
-          color: #e5e7eb;
+          color: #e5e7eb !important;
         }
 
         body.dark-mode .tips-intro,
         body.dark-mode .encouragement-box,
         body.dark-mode .history-intro {
-          background: #111827;
-          border-color: #334155;
+          background: #111827 !important;
+          border-color: #334155 !important;
         }
 
         body.dark-mode .mood-button {
-          background: #111827;
-          border-color: #334155;
+          background: #111827 !important;
+          border-color: #334155 !important;
         }
 
         body.dark-mode .mood-button.selected {
-          background: #1e293b;
+          background: #1e293b !important;
         }
 
         body.dark-mode .journal-textarea {
-          background: #111827;
-          color: #ffffff;
-          border-color: #334155;
+          background: #111827 !important;
+          color: #ffffff !important;
+          border-color: #334155 !important;
         }
 
         body.dark-mode .journal-textarea::placeholder {
-          color: #94a3b8;
+          color: #94a3b8 !important;
         }
 
         body.dark-mode .delete-entry-btn {
-          color: #cbd5e1;
+          color: #cbd5e1 !important;
         }
 
 
