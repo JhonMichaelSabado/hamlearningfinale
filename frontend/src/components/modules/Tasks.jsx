@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { IoCloseOutline, IoDocumentTextOutline, IoCreateOutline, IoAttachOutline, IoCalendarOutline, IoTimeOutline } from 'react-icons/io5';
 import { taskAPI, fileAPI, submissionAPI } from '../../services/api';
 import StudentDeadlineView from './StudentDeadlineView';
 import './Module.css';
@@ -485,51 +486,100 @@ const Tasks = () => {
             </div>
 
             {showAddTask && (
-              <div className="add-task-form">
-                <input
-                  type="text"
-                  value={newTaskData.title}
-                  onChange={(e) => setNewTaskData({ ...newTaskData, title: e.target.value })}
-                  placeholder="Task title..."
-                  className="task-input"
-                />
-                <textarea
-                  value={newTaskData.description}
-                  onChange={(e) => setNewTaskData({ ...newTaskData, description: e.target.value })}
-                  placeholder="Description (optional)..."
-                  className="task-textarea"
-                  rows="2"
-                />
-                <div className="task-file-upload-row">
-                  <label className="task-file-upload-label">Attach File (optional)</label>
+              <div className="task-modal-overlay" onClick={() => setShowAddTask(false)}>
+                <div className="add-task-form task-modal" onClick={(event) => event.stopPropagation()}>
+                  <div className="task-modal-header">
+                    <div>
+                      <h3>Create Personal Task</h3>
+                      <p>Add a task, optional attachment, and due date in one place.</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="task-modal-close"
+                      onClick={() => setShowAddTask(false)}
+                      aria-label="Close task form"
+                    >
+                      <IoCloseOutline />
+                    </button>
+                  </div>
+
+                  <label className="task-field-label">
+                    <IoCreateOutline className="task-field-icon" aria-hidden="true" />
+                    Task title
+                  </label>
                   <input
-                    type="file"
-                    onChange={handleUploadPersonalTaskAttachment}
-                    disabled={uploadingPersonalAttachment}
+                    type="text"
+                    value={newTaskData.title}
+                    onChange={(e) => setNewTaskData({ ...newTaskData, title: e.target.value })}
+                    placeholder="Task title..."
                     className="task-input"
                   />
-                  {uploadingPersonalAttachment && <small>Uploading attachment...</small>}
-                  {!!newTaskData.attachmentUrl && (
-                    <small style={{ color: '#059669' }}>Attached: {newTaskData.attachmentName || 'File uploaded'}</small>
-                  )}
+
+                  <label className="task-field-label">
+                    <IoDocumentTextOutline className="task-field-icon" aria-hidden="true" />
+                    Description
+                  </label>
+                  <textarea
+                    value={newTaskData.description}
+                    onChange={(e) => setNewTaskData({ ...newTaskData, description: e.target.value })}
+                    placeholder="Description (optional)..."
+                    className="task-textarea"
+                    rows="3"
+                  />
+
+                  <div className="task-file-upload-row">
+                    <label className="task-file-upload-label">
+                      <IoAttachOutline className="task-field-icon" aria-hidden="true" />
+                      Attach File (optional)
+                    </label>
+                    <input
+                      type="file"
+                      onChange={handleUploadPersonalTaskAttachment}
+                      disabled={uploadingPersonalAttachment}
+                      className="task-input"
+                    />
+                    {uploadingPersonalAttachment && <small>Uploading attachment...</small>}
+                    {!!newTaskData.attachmentUrl && (
+                      <small style={{ color: '#059669' }}>Attached: {newTaskData.attachmentName || 'File uploaded'}</small>
+                    )}
+                  </div>
+
+                  <div className="task-datetime-inputs">
+                    <div>
+                      <label className="task-field-label">
+                        <IoCalendarOutline className="task-field-icon" aria-hidden="true" />
+                        Due date
+                      </label>
+                      <input
+                        type="date"
+                        value={newTaskData.dueDate}
+                        onChange={(e) => setNewTaskData({ ...newTaskData, dueDate: e.target.value })}
+                        className="task-input"
+                      />
+                    </div>
+                    <div>
+                      <label className="task-field-label">
+                        <IoTimeOutline className="task-field-icon" aria-hidden="true" />
+                        Due time
+                      </label>
+                      <input
+                        type="time"
+                        value={newTaskData.dueTime}
+                        onChange={(e) => setNewTaskData({ ...newTaskData, dueTime: e.target.value })}
+                        className="task-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="task-modal-actions">
+                    <button type="button" className="btn-cancel-task" onClick={() => setShowAddTask(false)}>
+                      Cancel
+                    </button>
+                    <button onClick={handleAddPersonalTask} className="btn-save-task">
+                      Add Task
+                    </button>
+                  </div>
                 </div>
-                <div className="task-datetime-inputs">
-                  <input
-                    type="date"
-                    value={newTaskData.dueDate}
-                    onChange={(e) => setNewTaskData({ ...newTaskData, dueDate: e.target.value })}
-                    className="task-input"
-                  />
-                  <input
-                    type="time"
-                    value={newTaskData.dueTime}
-                    onChange={(e) => setNewTaskData({ ...newTaskData, dueTime: e.target.value })}
-                    className="task-input"
-                  />
-                </div>
-                <button onClick={handleAddPersonalTask} className="btn-save-task">
-                  Add Task
-                </button>
               </div>
             )}
 
