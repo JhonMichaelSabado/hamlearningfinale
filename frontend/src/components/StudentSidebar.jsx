@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { classAPI, taskAPI, deadlineAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { IoHomeOutline, IoCalendarOutline, IoTimeOutline, IoStatsChartOutline, IoSchoolOutline, IoCheckboxOutline, IoTimerOutline, IoHeartOutline, IoArchiveOutline, IoSettingsOutline, IoLogOutOutline } from 'react-icons/io5';
+import LogoutConfirmModal from './LogoutConfirmModal';
 import './StudentSidebar.css';
 
 const StudentSidebar = ({ refreshTrigger }) => {
@@ -12,6 +13,7 @@ const StudentSidebar = ({ refreshTrigger }) => {
   const [hamsterImage, setHamsterImage] = useState('/images/hamster-task.jpg');
   const [upcomingCount, setUpcomingCount] = useState(0);
   const [nearestDueText, setNearestDueText] = useState('');
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const navigate = useNavigate();
   const { logout } = useAuth();
 
@@ -184,6 +186,11 @@ const StudentSidebar = ({ refreshTrigger }) => {
   }, [refreshTrigger]);
 
   const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutModal(false);
     logout();
     navigate('/login');
   };
@@ -259,6 +266,12 @@ const StudentSidebar = ({ refreshTrigger }) => {
           <span>Log Out</span>
         </button>
       </div>
+
+      <LogoutConfirmModal
+        isOpen={showLogoutModal}
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
     </div>
   );
 };

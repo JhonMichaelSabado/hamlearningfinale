@@ -11,11 +11,13 @@ import {
   IoLogOutOutline,
   IoAddOutline
 } from 'react-icons/io5';
+import LogoutConfirmModal from './LogoutConfirmModal';
 import './TeacherSidebar.css';
 
 const TeacherSidebar = ({ onClassCreated }) => {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const navigate = useNavigate();
   const { logout } = useAuth();
 
@@ -50,6 +52,11 @@ const TeacherSidebar = ({ onClassCreated }) => {
   }, []);
 
   const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutModal(false);
     logout();
     navigate('/login');
   };
@@ -120,6 +127,12 @@ const TeacherSidebar = ({ onClassCreated }) => {
           <span>Log Out</span>
         </button>
       </div>
+
+      <LogoutConfirmModal
+        isOpen={showLogoutModal}
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
     </div>
   );
 };
