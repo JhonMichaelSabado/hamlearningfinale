@@ -65,7 +65,7 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
     }
 
     // Verify teacher owns the class
-    const { data: classData, error: classError } = await supabase
+    const { data: classData, error: classError } = await supabaseAdmin
       .from('classes')
       .select('*')
       .eq('id', classId)
@@ -139,7 +139,7 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
         return res.status(500).json({ message: 'Failed to upload materials' });
       }
 
-      const { data: createdFiles, error: filesInsertError } = await supabase
+      const { data: createdFiles, error: filesInsertError } = await supabaseAdmin
         .from('class_files')
         .insert(fileRecords)
         .select();
@@ -183,7 +183,7 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
     }
 
     // Create deadline
-    const { data: deadline, error: deadlineError } = await supabase
+    const { data: deadline, error: deadlineError } = await supabaseAdmin
       .from('deadlines')
       .insert([{
         class_id: classId,
@@ -261,7 +261,7 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
 
       if (fileRecords.length > 0) {
         // Insert file records into database
-        const { error: filesError } = await supabase
+        const { error: filesError } = await supabaseAdmin
           .from('deadline_files')
           .insert(fileRecords);
 
