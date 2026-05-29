@@ -158,6 +158,22 @@ const Wellness = () => {
     return moods.find(m => m.label === moodLabel);
   };
 
+  const formatEntryTitle = (entry) => {
+    const dateSource = entry.created_at || entry.entry_date || entry.timestamp;
+    if (!dateSource) return 'Journal Entry';
+
+    const date = new Date(dateSource);
+    if (Number.isNaN(date.getTime())) return 'Journal Entry';
+
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+  };
+
   return (
     <div className="module-container">
       <div className="module-header">
@@ -319,11 +335,12 @@ const Wellness = () => {
                   <div className="entries-list">
                     {entries.map((entry) => {
                       const moodData = getMoodData(entry.mood);
+                      const entryTitle = formatEntryTitle(entry);
                       return (
                         <div key={entry.id} className="history-entry">
                           <div className="entry-header">
                             <div className="entry-date-mood">
-                              <span className="entry-date">{entry.timestamp}</span>
+                              <span className="entry-date">{entryTitle}</span>
                               {moodData && (
                                 <span className="entry-mood" style={{ color: moodData.color }}>
                                   {moodData.emoji} {moodData.label}
