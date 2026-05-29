@@ -9,6 +9,7 @@ const StudentDeadlines = ({ classId = null, embedded = false }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all'); // all, to-do, submitted, graded, missing
+  const [typeFilter, setTypeFilter] = useState('all'); // deadline type filter
   const [selectedDeadline, setSelectedDeadline] = useState(null);
 
   useEffect(() => {
@@ -94,6 +95,10 @@ const StudentDeadlines = ({ classId = null, embedded = false }) => {
     if (filter === 'submitted') return sub.status === 'turned_in';
     if (filter === 'graded') return sub.status === 'graded';
     if (filter === 'missing') return isOverdue(sub.deadline?.due_date, sub.status);
+    // Also apply type filter
+    if (typeFilter && typeFilter !== 'all') {
+      return (sub.deadline?.type || 'other') === typeFilter;
+    }
     return true;
   });
 
@@ -143,12 +148,28 @@ const StudentDeadlines = ({ classId = null, embedded = false }) => {
 
   return (
     <div className="module-container">
-      <div className="module-header">
+      <div className="module-header" style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
         <div>
           <h1>{embedded ? '⏰ Class Deadlines' : '📚 My Assignments'}</h1>
           <p className="module-description">
             {embedded ? 'Track and submit activities for this class' : 'View and submit your assignments'}
           </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', background: 'white' }}
+            title="Filter by assignment type"
+          >
+            <option value="all">All types</option>
+            <option value="assignment">Assignment</option>
+            <option value="project">Project</option>
+            <option value="exam">Exam</option>
+            <option value="quiz">Quiz</option>
+            <option value="other">Other</option>
+          </select>
         </div>
       </div>
 
