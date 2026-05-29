@@ -55,8 +55,8 @@ const ConfirmModal = ({
         </div>
 
         <div className="confirm-modal-footer">
-          <button className="confirm-cancel" onClick={onCancel}>{cancelText}</button>
-          <button className="confirm-ok" onClick={onConfirm} disabled={!canConfirm} style={{ opacity: canConfirm ? 1 : 0.6 }}>
+          <button type="button" className="confirm-cancel" onClick={onCancel}>{cancelText}</button>
+          <button type="button" className="confirm-ok" onClick={onConfirm} disabled={!canConfirm} style={{ opacity: canConfirm ? 1 : 0.6 }}>
             {confirmText}
           </button>
         </div>

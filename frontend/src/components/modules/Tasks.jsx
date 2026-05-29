@@ -658,7 +658,11 @@ const Tasks = () => {
                       </div>
                       <button 
                         className="btn-delete-task"
-                        onClick={() => handleDeletePersonalTask(task.id)}
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleDeletePersonalTask(task.id);
+                        }}
                         title="Delete task"
                       >
                         🗑️
