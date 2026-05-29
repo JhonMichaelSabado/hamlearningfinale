@@ -30,12 +30,12 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Serve uploaded files statically
+// Serve uploaded files statically from root uploads directory
 app.use('/uploads', (req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   res.setHeader('Access-Control-Allow-Origin', '*');
   next();
-}, express.static(path.join(__dirname, 'uploads')));
+}, express.static(path.join(__dirname, '../uploads')));
 
 // DIAGNOSTIC + Normalization: Accept common bundler wrappers
 const rawRoutes = {
