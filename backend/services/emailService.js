@@ -304,6 +304,10 @@ const notifyDeadlineReminder = async (taskId, hoursUntilDeadline) => {
 
       if (!student || !student.email) continue;
 
+      // Generate a 5-digit reminder code to include in the email (informational)
+      const reminderCode = Math.floor(10000 + Math.random() * 90000).toString();
+      console.log(`Deadline reminder code for task ${taskId} -> ${student.email}: ${reminderCode}`);
+
       const mailContent = `
         <div class="header">
           <h1>⏰ HamLearning</h1>
@@ -320,8 +324,12 @@ const notifyDeadlineReminder = async (taskId, hoursUntilDeadline) => {
             <p><span class="label">Due:</span> ${formattedDate}</p>
             <p><span class="label">Time Remaining:</span> ${hoursUntilDeadline} hours</p>
           </div>
-
           <p style="color: #e74c3c; font-weight: 600;">Make sure to submit your work before the deadline!</p>
+
+          <div class="section">
+            <p style="font-weight:600">Reminder Code (for your reference):</p>
+            <div class="score-display" style="display:inline-block; margin-top:8px;">${reminderCode}</div>
+          </div>
           
           <div class="cta-section">
             <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/tasks" class="button">View & Submit</a>

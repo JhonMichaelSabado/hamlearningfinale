@@ -132,6 +132,7 @@ function AppRoutes() {
           </PublicRoute>
         } 
       />
+      
       <Route 
         path="/complete-profile" 
         element={

@@ -315,6 +315,13 @@
   margin: 0;
 }
 
+.auth-hint {
+  margin-top: 8px;
+  color: #4b5563;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .tab-container {
   display: flex;
   gap: 0;
@@ -560,6 +567,13 @@
   display: block;
   font-weight: 500;
   animation: slideIn 0.3s ease;
+}
+
+.field-note {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: -2px;
+  line-height: 1.4;
 }
 
 @keyframes slideIn {

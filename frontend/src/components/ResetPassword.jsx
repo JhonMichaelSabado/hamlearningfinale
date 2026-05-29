@@ -141,6 +141,9 @@ const ResetPassword = () => {
         <div className="welcome-section">
           <h2>Set New Password</h2>
           <p>Enter your new password below</p>
+          <p className="auth-hint">
+            This link works for the email account you used to register, including Gmail accounts signed in with Google.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">

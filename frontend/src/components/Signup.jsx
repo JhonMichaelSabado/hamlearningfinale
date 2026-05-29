@@ -432,6 +432,9 @@ const Signup = () => {
           <div className="welcome-section">
             <h2>Welcome</h2>
             <p>Login or create an account to get started</p>
+            <p className="auth-hint">
+              We recommend using a Gmail or other email account you can access later for Google sign-in and password resets.
+            </p>
           </div>
 
           <div className="tab-container">
@@ -513,6 +516,7 @@ const Signup = () => {
                 required
                 className={(emailError || formErrors.email) ? 'error' : ''}
               />
+              <span className="field-note">Use an active email address you can access for Google login or password recovery.</span>
               {emailError && <span className="field-error">{emailError}</span>}
             </div>
 
@@ -670,6 +674,7 @@ const Signup = () => {
                 required
                 className={(loginEmailError || formErrors.login_email) ? 'error' : ''}
               />
+              <span className="field-note">Use the same email you signed up with, or a Google account if you used Google sign-in.</span>
               {loginEmailError && <span className="field-error">{loginEmailError}</span>}
             </div>
 

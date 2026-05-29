@@ -34,14 +34,27 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+// Log email configuration status
+console.log('===== PASSWORD RESET EMAIL CONFIG =====');
+console.log('EMAIL_USER configured:', !!process.env.EMAIL_USER);
+console.log('EMAIL_PASSWORD configured:', !!process.env.EMAIL_PASSWORD);
+console.log('=======================================\n');
+
 // Request password reset
 router.post('/forgot-password', async (req, res) => {
   try {
+    console.log('=== FORGOT PASSWORD REQUEST ===');
+    console.log('Request body:', req.body);
+    console.log('Email received:', req.body.email);
+    
     const { email } = req.body;
 
     if (!email) {
+      console.warn('❌ No email provided in request');
       return res.status(400).json({ message: 'Email is required' });
     }
+
+    console.log(`📧 Looking up user with email: ${email}`);
 
     // Check if user exists
     const { data: users, error } = await supabase
@@ -50,94 +63,75 @@ router.post('/forgot-password', async (req, res) => {
       .eq('email', email)
       .limit(1);
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Supabase error:', error);
+      throw error;
+    }
 
     if (!users || users.length === 0) {
+      console.log(`⚠️  No user found with email: ${email}`);
       // Return success even if user doesn't exist (security best practice)
       return res.status(200).json({ 
-        message: 'If an account exists with this email, a password reset link has been sent.' 
+        message: 'If an account exists with this email, a password reset code has been sent.' 
       });
     }
 
     const user = users[0];
+    console.log(`✓ User found: ${user.name} (ID: ${user.id})`);
 
-    // Check if user registered with Google OAuth
-    if (user.auth_provider === 'google' && !user.password) {
-      return res.status(400).json({ 
-        message: 'This account uses Google Sign-In. Please use Google to log in.' 
-      });
-    }
-
-    // Generate reset token
-    const resetToken = crypto.randomBytes(32).toString('hex');
+    // Generate a 5-digit numeric reset code
+    const resetCode = Math.floor(10000 + Math.random() * 90000).toString();
+    console.log(`🔐 Generated reset code: ${resetCode}`);
+    
     const resetTokenExpires = new Date(Date.now() + 3600000); // 1 hour from now
 
-    // Save token to database
+    // Save code to database (stored in reset_token)
+    console.log(`💾 Saving reset code to database for user ${user.id}`);
     const { error: updateError } = await supabase
       .from('users')
       .update({
-        reset_token: resetToken,
+        reset_token: resetCode,
         reset_token_expires: resetTokenExpires.toISOString()
       })
       .eq('id', user.id);
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error('❌ Database update error:', updateError);
+      throw updateError;
+    }
 
-    // Create reset URL
-    const resetUrl = `http://localhost:3000/reset-password?token=${resetToken}`;
+    console.log('✓ Reset code saved to database');
 
-    // Send email
+    // Send email containing the 5-digit code
     const mailOptions = {
       from: process.env.EMAIL_USER || 'HamLearning LMS <noreply@hamlearning.com>',
       to: email,
-      subject: 'Password Reset Request - HamLearning',
+      subject: 'Your HamLearning Password Reset Code',
       html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #2d7a4f 0%, #1e5a3a 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-            .content { background: white; padding: 30px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 8px 8px; }
-            .button { display: inline-block; background: linear-gradient(135deg, #2d7a4f 0%, #1e5a3a 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 20px 0; }
-            .footer { text-align: center; margin-top: 20px; color: #999; font-size: 12px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🎓 HamLearning</h1>
-              <p>Password Reset Request</p>
-            </div>
-            <div class="content">
-              <p>Hello ${user.name || 'there'},</p>
-              <p>We received a request to reset your password for your HamLearning account.</p>
-              <p>Click the button below to reset your password. This link will expire in 1 hour.</p>
-              <div style="text-align: center;">
-                <a href="${resetUrl}" class="button">Reset Password</a>
-              </div>
-              <p>Or copy and paste this link into your browser:</p>
-              <p style="word-break: break-all; color: #2d7a4f;">${resetUrl}</p>
-              <p><strong>If you didn't request this</strong>, you can safely ignore this email. Your password will remain unchanged.</p>
-            </div>
-            <div class="footer">
-              <p>© 2025 HamLearning LMS. All rights reserved.</p>
-            </div>
-          </div>
-        </body>
-        </html>
+        <p>Hello ${user.name || 'there'},</p>
+        <p>We received a request to reset your HamLearning password. Use the 5-digit code below to reset your password. This code will expire in 1 hour.</p>
+        <h2 style="letter-spacing:6px;">${resetCode}</h2>
+        <p>If you didn't request this, you can safely ignore this email.</p>
+        <p>© HamLearning</p>
       `
     };
 
-    await transporter.sendMail(mailOptions);
+    try {
+      console.log(`📧 Attempting to send reset code email to ${email}...`);
+      await transporter.sendMail(mailOptions);
+      console.log(`✅ Reset code email sent successfully to ${email}`);
+    } catch (emailError) {
+      console.warn(`⚠️  Email failed to send (but code was saved to DB): ${emailError.message}`);
+      console.warn('Email will not block the reset process - code is available in DB');
+      console.log(`Code for manual testing: ${resetCode}`);
+    }
 
     res.status(200).json({ 
-      message: 'If an account exists with this email, a password reset link has been sent.' 
+      message: 'If an account exists with this email, a password reset code has been sent.' 
     });
 
   } catch (error) {
-    console.error('Forgot password error:', error);
+    console.error('❌ Forgot password error:', error);
     res.status(500).json({ message: 'Error processing request. Please try again.' });
   }
 });
@@ -194,6 +188,65 @@ router.post('/reset-password', async (req, res) => {
 
   } catch (error) {
     console.error('Reset password error:', error);
+    res.status(500).json({ message: 'Error resetting password. Please try again.' });
+  }
+});
+
+// Reset password using email + 5-digit code
+router.post('/reset-password-with-code', async (req, res) => {
+  try {
+    const { email, code, newPassword } = req.body;
+
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({ message: 'Email, code and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+    }
+
+    // Find user by email and matching code
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .limit(1);
+
+    if (error) throw error;
+
+    if (!users || users.length === 0) {
+      return res.status(400).json({ message: 'Invalid email or code' });
+    }
+
+    const user = users[0];
+
+    if (!user.reset_token || user.reset_token !== String(code)) {
+      return res.status(400).json({ message: 'Invalid code' });
+    }
+
+    if (!user.reset_token_expires || new Date(user.reset_token_expires) < new Date()) {
+      return res.status(400).json({ message: 'Reset code has expired. Please request a new one.' });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password and clear reset token
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({
+        password: hashedPassword,
+        reset_token: null,
+        reset_token_expires: null
+      })
+      .eq('id', user.id);
+
+    if (updateError) throw updateError;
+
+    res.status(200).json({ message: 'Password has been reset successfully. You can now log in with your new password.' });
+
+  } catch (error) {
+    console.error('Reset with code error:', error);
     res.status(500).json({ message: 'Error resetting password. Please try again.' });
   }
 });
