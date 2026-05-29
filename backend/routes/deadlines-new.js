@@ -235,6 +235,17 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
       }
     }
 
+    // Send notifications to all students about this deadline (with or without files)
+    console.log(`\n📨 [DEADLINE NOTIFICATION] Starting notifications for deadline: ${title}`);
+    try {
+      console.log(`📧 [DEADLINE NOTIFICATION] Notifying students about deadline: ${title}`);
+      await notifyStudentsOfMaterialPosted(parseInt(classId, 10), title, 'Deadline Posted');
+      console.log(`✅ [DEADLINE NOTIFICATION] Notification sent for deadline: ${title}`);
+    } catch (notifError) {
+      console.error('❌ [DEADLINE NOTIFICATION] Error sending deadline notification:', notifError.message);
+      console.error('   Full error:', notifError);
+    }
+
     // Note: Submissions are auto-created by database trigger for enrolled students
 
     res.status(201).json({
