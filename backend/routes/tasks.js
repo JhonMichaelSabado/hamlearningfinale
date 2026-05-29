@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const config = require('../config/config');
 const supabase = require('../config/supabase');
+const supabaseAdmin = require('../config/supabase-admin');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -315,7 +316,7 @@ router.delete('/personal/:id', verifyToken, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this task' });
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('tasks')
       .delete()
       .eq('id', id);
@@ -491,7 +492,7 @@ router.delete('/teacher/:id', verifyToken, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this task' });
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('tasks')
       .delete()
       .eq('id', id);
