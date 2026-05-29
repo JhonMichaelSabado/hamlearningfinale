@@ -65,7 +65,22 @@ const SubjectsSidebar = ({ refreshTrigger }) => {
             >
               {index === 0 && <div className="subject-badge">1</div>}
               <div className="subject-icon">
-                <img src="https://via.placeholder.com/60" alt="Subject" />
+                {classItem.subject ? (
+                  <div className="subject-emoji">
+                    {classItem.subject.toLowerCase().includes('math') ? '🔢' :
+                     classItem.subject.toLowerCase().includes('english') ? '📖' :
+                     classItem.subject.toLowerCase().includes('science') ? '🔬' :
+                     classItem.subject.toLowerCase().includes('history') ? '🏛️' :
+                     classItem.subject.toLowerCase().includes('art') ? '🎨' :
+                     classItem.subject.toLowerCase().includes('music') ? '🎵' :
+                     classItem.subject.toLowerCase().includes('pe') || classItem.subject.toLowerCase().includes('physical') ? '⚽' :
+                     classItem.subject.toLowerCase().includes('computer') || classItem.subject.toLowerCase().includes('tech') ? '💻' :
+                     classItem.subject.toLowerCase().includes('language') ? '🌐' :
+                     '📚'}
+                  </div>
+                ) : (
+                  <div className="subject-emoji">📚</div>
+                )}
               </div>
               <div className="subject-info">
                 <div className="subject-name">{classItem.className}</div>

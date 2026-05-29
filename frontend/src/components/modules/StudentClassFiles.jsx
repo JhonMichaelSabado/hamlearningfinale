@@ -45,22 +45,28 @@ function StudentClassFiles() {
       const deadlineAttachments = detailedDeadlines.flatMap((res) => {
         const full = res?.data?.deadline;
         const deadlineFiles = full?.files || [];
-        return deadlineFiles.map((f) => ({
-          id: `deadline-file-${f.id}`,
-          source_id: f.id,
-          title: full.title,
-          description: full.instructions || 'Attached in deadline',
-          file_name: f.file_name,
-          file_type: f.file_type,
-          file_size: f.file_size,
-          file_url: `${API_BASE}${f.file_path}`,
-          file_path: f.file_path,
+        return deadlineFiles.map((f) => {
+          // Handle both full URLs and local paths
+          const fileUrl = f.file_path?.startsWith('http') 
+            ? f.file_path 
+            : `${API_BASE}${f.file_path}`;
+          return {
+            id: `deadline-file-${f.id}`,
+            source_id: f.id,
+            title: full.title,
+            description: full.instructions || 'Attached in deadline',
+            file_name: f.file_name,
+            file_type: f.file_type,
+            file_size: f.file_size,
+            file_url: fileUrl,
+            file_path: f.file_path,
           created_at: f.uploaded_at || full.created_at,
           source_type: 'deadline_attachment',
           deadline_title: full.title,
           deadline_id: full.id,
           disableComments: false
-        }));
+          };
+        });
       });
 
       const merged = [...deadlineAttachments, ...classFiles].sort(
