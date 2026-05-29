@@ -194,11 +194,14 @@ const ArchiveDashboard = () => {
           <ConfirmModal
             isOpen={confirmOpen}
             title="Permanently delete archived material?"
-            message="This cannot be undone. Are you sure you want to permanently delete this archived material?"
+            message="This cannot be undone. To confirm, type the archived item's title exactly and click Delete."
             confirmText="Delete"
             cancelText="Cancel"
             onConfirm={performDeletePermanent}
             onCancel={() => setConfirmOpen(false)}
+            requireInput={true}
+            expectedText={confirmItem?.title || ''}
+            inputPlaceholder={confirmItem?.title || ''}
           />
         </>
       )}

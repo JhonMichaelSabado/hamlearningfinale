@@ -54,3 +54,18 @@
 }
 
 .confirm-ok:hover { opacity: 0.95; }
+
+/* input when confirmation requires typing */
+.confirm-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.confirm-input:focus {
+  outline: none;
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220,38,38,0.06);
+}
