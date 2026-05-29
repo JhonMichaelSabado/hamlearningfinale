@@ -367,6 +367,11 @@
   gap: 8px;
 }
 
+.task-input[type="date"],
+.task-input[type="time"] {
+  color-scheme: light;
+}
+
 .task-datetime-inputs .task-input {
   width: 100%;
 }
