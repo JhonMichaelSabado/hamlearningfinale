@@ -163,6 +163,15 @@ const TeacherClassDeadlines = () => {
     return deadline < new Date();
   };
 
+  // Get today's date in YYYY-MM-DD format for date input min attribute
+  const getTodayDateString = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   if (loading) {
     return <div className="loading-state">Loading deadlines...</div>;
   }
@@ -405,9 +414,13 @@ const TeacherClassDeadlines = () => {
                     type="date"
                     value={newDeadline.deadline_date}
                     onChange={(e) => setNewDeadline({ ...newDeadline, deadline_date: e.target.value })}
+                    min={getTodayDateString()}
                     required
                     disabled={creating}
                   />
+                  <small style={{ color: '#6b7280', marginTop: '4px', display: 'block' }}>
+                    Only today and future dates are allowed
+                  </small>
                 </div>
 
                 <div className="form-group">
