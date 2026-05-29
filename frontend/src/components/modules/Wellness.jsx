@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { wellnessAPI } from '../../services/api';
+import ConfirmModal from '../ConfirmModal';
 import './Module.css';
 
 const Wellness = () => {
@@ -8,6 +9,8 @@ const Wellness = () => {
   const [entries, setEntries] = useState([]);
   const [activeTab, setActiveTab] = useState('journal'); // 'journal', 'tips', 'history'
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [entryToDelete, setEntryToDelete] = useState(null);
 
   const moods = [
     { emoji: '😊', label: 'Great', color: '#10b981' },
@@ -144,11 +147,23 @@ const Wellness = () => {
     setTimeout(() => setShowSuccessMessage(false), 3000);
   };
 
-  const deleteEntry = async (id) => {
-    if (!window.confirm('Delete this journal entry?')) return;
+  const openDeleteModal = (entry) => {
+    setEntryToDelete(entry);
+    setDeleteModalOpen(true);
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModalOpen(false);
+    setEntryToDelete(null);
+  };
+
+  const confirmDeleteEntry = async () => {
+    if (!entryToDelete) return;
+
     try {
-      await wellnessAPI.deleteEntry(id);
-      setEntries((prev) => prev.filter((e) => e.id !== id));
+      await wellnessAPI.deleteEntry(entryToDelete.id);
+      setEntries((prev) => prev.filter((e) => e.id !== entryToDelete.id));
+      closeDeleteModal();
     } catch (error) {
       console.error('Failed to delete wellness entry:', error);
     }
@@ -349,7 +364,7 @@ const Wellness = () => {
                             </div>
                             <button 
                               className="delete-entry-btn"
-                              onClick={() => deleteEntry(entry.id)}
+                              onClick={() => openDeleteModal(entry)}
                               title="Delete entry"
                             >
                               ✕
@@ -368,6 +383,16 @@ const Wellness = () => {
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        title="Delete Journal Entry?"
+        message="This will permanently delete the selected journal entry. This cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDeleteEntry}
+        onCancel={closeDeleteModal}
+      />
 
       <style jsx>{`
         .wellness-container {
