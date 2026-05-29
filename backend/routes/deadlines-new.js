@@ -325,6 +325,54 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
 });
 
 // ===============================================
+// GET ALL DEADLINES FOR THE CURRENT USER
+// ===============================================
+router.get('/my-deadlines', verifyToken, async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    const { data: enrollments, error: enrollError } = await supabase
+      .from('enrollments')
+      .select('class_id')
+      .eq('user_id', userId);
+
+    if (enrollError) {
+      console.error('❌ Error fetching enrollments:', enrollError);
+      return res.status(500).json({ message: 'Error fetching enrollments' });
+    }
+
+    const classIds = (enrollments || []).map((enrollment) => enrollment.class_id);
+
+    if (classIds.length === 0) {
+      return res.json([]);
+    }
+
+    const { data: deadlines, error: deadlinesError } = await supabase
+      .from('deadlines')
+      .select(`
+        *,
+        classes:class_id (
+          class_name,
+          section,
+          class_code
+        )
+      `)
+      .in('class_id', classIds)
+      .order('due_date', { ascending: true, nullsFirst: false });
+
+    if (deadlinesError) {
+      console.error('❌ Error fetching deadlines:', deadlinesError);
+      return res.status(500).json({ message: 'Error fetching deadlines' });
+    }
+
+    res.json(deadlines || []);
+  } catch (error) {
+    console.error('❌ Get my deadlines error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ===============================================
 // GET ALL DEADLINES FOR A CLASS
 // ===============================================
 router.get('/class/:classId', verifyToken, async (req, res) => {
