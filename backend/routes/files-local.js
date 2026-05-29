@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const config = require('../config/config');
 const supabase = require('../config/supabase');
+const supabaseAdmin = require('../config/supabase-admin');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -10,21 +11,15 @@ const { notifyStudentsOfMaterialPosted } = require('../services/notificationEngi
 
 // Configure Vercel temp paths
 const isVercel = process.env.VERCEL === '1';
-const uploadsDir = isVercel ? '/tmp' : path.join(__dirname, '../../uploads');
-const tempDir = isVercel ? '/tmp' : path.join(uploadsDir, 'temp');
+const tempDir = isVercel ? '/tmp' : path.join(__dirname, '../../uploads', 'temp');
 
-// Create uploads directory if it doesn't exist (Skip on Vercel)
+// Create temp directory if it doesn't exist (Skip on Vercel)
 try {
-  if (!isVercel) {
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
-    }
+  if (!isVercel && !fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
   }
 } catch (error) {
-  console.log("Running on Vercel: Skipping local top-level directory creation.");
+  console.log("Running on Vercel: Skipping local directory creation.");
 }
 
 // Configure multer for local disk storage
@@ -104,89 +99,99 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
 
     console.log('Permission check passed');
 
-    // Move file from temp to correct class directory
-    const classDir = isVercel ? '/tmp' : path.join(uploadsDir, `class-${classIdNum}`);
-    
     try {
-      if (!isVercel && !fs.existsSync(classDir)) {
-        fs.mkdirSync(classDir, { recursive: true });
-      }
-    } catch (e) {
-      console.log('Skipping class dir creation on Vercel');
-    }
-    
-    newFilePath = path.join(classDir, file.filename);
-    
-    try {
-      fs.renameSync(file.path, newFilePath);
-      console.log('File moved from:', file.path);
-      console.log('File moved to:', newFilePath);
-    } catch (e) {
-      console.log('Skipping rename, file remains at:', file.path);
-      newFilePath = file.path;
-    }
-
-    // Create file URL (accessible via /uploads route)
-    const fileUrl = `${process.env.BACKEND_URL || 'http://localhost:5000'}/uploads/class-${classIdNum}/${file.filename}`;
-    console.log('Generated file URL:', fileUrl);
-
-    // Save to database (no RLS issues with direct INSERT)
-    const { data: fileRecord, error: dbError } = await supabase
-      .from('class_files')
-      .insert({
-        class_id: classIdNum,
-        teacher_id: req.user.id,
-        file_name: file.originalname,
-        file_url: fileUrl,
-        file_type: file.mimetype,
-        file_size: file.size,
-        title: title,
-        description: description || null
-      })
-      .select()
-      .single();
-
-    if (dbError) {
-      console.error('Database error:', JSON.stringify(dbError, null, 2));
-      // Delete uploaded file from new location
-      try {
-        if (fs.existsSync(newFilePath)) fs.unlinkSync(newFilePath);
-      } catch (e) {}
+      console.log(`📤 Uploading file to Supabase Storage: ${file.originalname}`);
       
-      return res.status(500).json({ 
-        message: 'Database error', 
-        error: dbError.message 
-      });
+      // Read file from disk
+      const fileBuffer = fs.readFileSync(file.path);
+      
+      // Generate unique storage path
+      const storagePath = `class-materials/class-${classIdNum}/${Date.now()}-${file.originalname}`;
+      
+      // Upload to Supabase Storage
+      const { data: uploadedFile, error: uploadError } = await supabaseAdmin.storage
+        .from('files')
+        .upload(storagePath, fileBuffer, {
+          contentType: file.mimetype,
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('❌ Storage upload error:', uploadError);
+        try { fs.unlinkSync(file.path); } catch (e) {}
+        return res.status(500).json({ message: 'Failed to upload file to storage', error: uploadError.message });
+      }
+
+      // Get public URL
+      const { data: publicUrl } = supabaseAdmin.storage
+        .from('files')
+        .getPublicUrl(storagePath);
+
+      const fileUrl = publicUrl.publicUrl;
+      console.log(`✅ File uploaded to Supabase Storage: ${fileUrl}`);
+
+      // Save to database
+      const { data: fileRecord, error: dbError } = await supabase
+        .from('class_files')
+        .insert({
+          class_id: classIdNum,
+          teacher_id: req.user.id,
+          file_name: file.originalname,
+          file_url: fileUrl,
+          file_type: file.mimetype,
+          file_size: file.size,
+          title: title,
+          description: description || null
+        })
+        .select()
+        .single();
+
+      if (dbError) {
+        console.error('Database error:', JSON.stringify(dbError, null, 2));
+        try { fs.unlinkSync(file.path); } catch (e) {}
+        return res.status(500).json({ 
+          message: 'Database error', 
+          error: dbError.message 
+        });
+      }
+
+      console.log('File record saved:', fileRecord.id);
+      console.log('=== UPLOAD COMPLETE ===');
+
+      // Notify students of new material
+      console.log('\n📨 [FILES-LOCAL] Calling notification engine...');
+      try {
+        await notifyStudentsOfMaterialPosted(classIdNum, title, file.originalname);
+        console.log('📨 [FILES-LOCAL] Notification call completed successfully\n');
+      } catch (notifyError) {
+        console.error('❌ [FILES-LOCAL] Error sending notifications:', notifyError.message);
+        console.error('    Full error:', notifyError);
+      }
+
+      // Clean up temp file
+      try {
+        fs.unlinkSync(file.path);
+      } catch (e) {
+        console.log('Could not delete temp file:', e.message);
+      }
+
+      res.status(201).json({ message: 'File uploaded successfully', file: fileRecord });
+    } catch (error) {
+      console.error('Upload error:', error);
+      try { fs.unlinkSync(file.path); } catch (e) {}
+      return res.status(500).json({ message: 'Server error', error: error.message });
     }
-
-    console.log('File record saved:', fileRecord.id);
-    console.log('=== UPLOAD COMPLETE ===');
-
-    // Notify students of new material
-    console.log('\n📨 [FILES-LOCAL] Calling notification engine...');
-    try {
-      await notifyStudentsOfMaterialPosted(classIdNum, title, file.originalname);
-      console.log('📨 [FILES-LOCAL] Notification call completed successfully\n');
-    } catch (notifyError) {
-      console.error('❌ [FILES-LOCAL] Error sending notifications:', notifyError.message);
-      console.error('    Full error:', notifyError);
-    }
-
-    res.status(201).json({ message: 'File uploaded successfully', file: fileRecord });
 
   } catch (error) {
     console.error('Upload exception:', error);
-    // Clean up file - check both temp and final locations
+    // Clean up file
     try {
-      if (newFilePath && fs.existsSync(newFilePath)) {
-        fs.unlinkSync(newFilePath);
-        console.log('Cleaned up file from:', newFilePath);
-      } else if (req.file?.path && fs.existsSync(req.file.path)) {
+      if (req.file?.path && fs.existsSync(req.file.path)) {
         fs.unlinkSync(req.file.path);
         console.log('Cleaned up file from temp:', req.file.path);
       }
     } catch (e) {
-      console.log("Cleanup failed, likely Vercel read-only state.");
+      console.log("Cleanup failed");
     }
     
     res.status(500).json({ message: 'Server error', error: error.message });

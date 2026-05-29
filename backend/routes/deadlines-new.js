@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const supabase = require('../config/supabase');
+const supabaseAdmin = require('../config/supabase-admin');
 const { verifyToken } = require('../middleware/auth');
 const { notifyStudentsOfMaterialPosted } = require('../services/notificationEngine');
 
@@ -54,7 +55,6 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
   try {
     const userId = req.userId;
     const { classId, title, instructions, type, dueDate, dueTime, points, allowLateSubmission, submissionType, postKind } = req.body;
-    const materialPaths = [];
     const isVercel = process.env.VERCEL === '1';
 
     console.log('📝 Creating post:', { classId, title, type, postKind, userId });
@@ -81,31 +81,62 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
         return res.status(400).json({ message: 'Please choose at least one file for Files & Materials' });
       }
 
-      const classUploadDir = isVercel ? '/tmp' : path.join(__dirname, '../uploads', `class-${classId}`);
-      try {
-        if (!isVercel) await fs.mkdir(classUploadDir, { recursive: true });
-      } catch (e) {
-        console.log("Skipping class dir creation on Vercel");
-      }
-
       const fileRecords = [];
 
       for (const file of req.files) {
-        const tempPath = file.path;
-        const finalPath = path.join(classUploadDir, file.filename);
-        await fs.rename(tempPath, finalPath);
-        materialPaths.push(finalPath);
+        try {
+          console.log(`📤 Uploading material to Supabase Storage: ${file.originalname}`);
+          
+          // Read file buffer from disk
+          const fileBuffer = await fs.readFile(file.path);
+          
+          // Generate unique storage path
+          const storagePath = `class-materials/class-${classId}/${Date.now()}-${file.originalname}`;
+          
+          // Upload to Supabase Storage
+          const { data: uploadedFile, error: uploadError } = await supabaseAdmin.storage
+            .from('files')
+            .upload(storagePath, fileBuffer, {
+              contentType: file.mimetype,
+              upsert: false
+            });
 
-        fileRecords.push({
-          class_id: parseInt(classId, 10),
-          teacher_id: userId,
-          file_name: file.originalname,
-          file_url: `${process.env.BACKEND_URL || 'http://localhost:5000'}/uploads/class-${classId}/${file.filename}`,
-          file_type: file.mimetype,
-          file_size: file.size,
-          title,
-          description: instructions || null
-        });
+          if (uploadError) {
+            console.error('❌ Storage upload error:', uploadError);
+            continue;
+          }
+
+          // Get public URL
+          const { data: publicUrl } = supabaseAdmin.storage
+            .from('files')
+            .getPublicUrl(storagePath);
+
+          console.log(`✅ Material uploaded to Supabase Storage: ${publicUrl.publicUrl}`);
+
+          fileRecords.push({
+            class_id: parseInt(classId, 10),
+            teacher_id: userId,
+            file_name: file.originalname,
+            file_url: publicUrl.publicUrl,
+            file_type: file.mimetype,
+            file_size: file.size,
+            title,
+            description: instructions || null
+          });
+
+          // Clean up temp file
+          try {
+            await fs.unlink(file.path);
+          } catch (e) {
+            console.log('Could not delete temp file:', e.message);
+          }
+        } catch (error) {
+          console.error('❌ Error processing material file:', error.message);
+        }
+      }
+
+      if (fileRecords.length === 0) {
+        return res.status(500).json({ message: 'Failed to upload materials' });
       }
 
       const { data: createdFiles, error: filesInsertError } = await supabase
@@ -115,13 +146,6 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
 
       if (filesInsertError) {
         console.error('❌ Error creating material records:', filesInsertError);
-        for (const filePath of materialPaths) {
-          try {
-            await fs.unlink(filePath);
-          } catch (unlinkError) {
-            console.error('Error cleaning material file:', unlinkError.message);
-          }
-        }
         return res.status(500).json({ message: 'Error posting materials', error: filesInsertError.message });
       }
 
@@ -184,53 +208,81 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
 
     // Handle file uploads if any
     if (req.files && req.files.length > 0) {
-      const deadlineDir = isVercel ? '/tmp' : path.join(__dirname, '../uploads/deadline-files', `class-${classId}`, `deadline-${deadline.id}`);
-      try {
-        if (!isVercel) await fs.mkdir(deadlineDir, { recursive: true });
-      } catch (e) {
-        console.log("Skipping deadline dir creation on Vercel");
-      }
-
       const fileRecords = [];
 
       for (const file of req.files) {
-        const tempPath = file.path;
-        const finalPath = path.join(deadlineDir, file.filename);
-        
-        // Move file from temp to final location
-        await fs.rename(tempPath, finalPath);
+        try {
+          console.log(`📤 Uploading file to Supabase Storage: ${file.originalname}`);
+          
+          // Read file buffer from disk
+          const fileBuffer = await fs.readFile(file.path);
+          
+          // Generate unique storage path
+          const storagePath = `deadline-files/class-${classId}/deadline-${deadline.id}/${Date.now()}-${file.originalname}`;
+          
+          // Upload to Supabase Storage
+          const { data: uploadedFile, error: uploadError } = await supabaseAdmin.storage
+            .from('files')
+            .upload(storagePath, fileBuffer, {
+              contentType: file.mimetype,
+              upsert: false
+            });
 
-        fileRecords.push({
-          deadline_id: deadline.id,
-          file_name: file.originalname,
-          file_path: `/uploads/deadline-files/class-${classId}/deadline-${deadline.id}/${file.filename}`,
-          file_type: file.mimetype,
-          file_size: file.size
-        });
+          if (uploadError) {
+            console.error('❌ Storage upload error:', uploadError);
+            continue;
+          }
+
+          // Get public URL
+          const { data: publicUrl } = supabaseAdmin.storage
+            .from('files')
+            .getPublicUrl(storagePath);
+
+          console.log(`✅ File uploaded to Supabase Storage: ${publicUrl.publicUrl}`);
+
+          fileRecords.push({
+            deadline_id: deadline.id,
+            file_name: file.originalname,
+            file_path: publicUrl.publicUrl,
+            file_type: file.mimetype,
+            file_size: file.size
+          });
+
+          // Clean up temp file
+          try {
+            await fs.unlink(file.path);
+          } catch (e) {
+            console.log('Could not delete temp file:', e.message);
+          }
+        } catch (error) {
+          console.error('❌ Error processing file:', error.message);
+        }
       }
 
-      // Insert file records into database
-      const { error: filesError } = await supabase
-        .from('deadline_files')
-        .insert(fileRecords);
+      if (fileRecords.length > 0) {
+        // Insert file records into database
+        const { error: filesError } = await supabase
+          .from('deadline_files')
+          .insert(fileRecords);
 
-      if (filesError) {
-        console.error('❌ Error saving file records:', filesError);
-      } else {
-        console.log(`✅ Uploaded ${fileRecords.length} files for deadline ${deadline.id}`);
-        
-        // Send notifications to all students about deadline with files
-        console.log(`\n📨 [DEADLINE FILES] Starting notifications for ${req.files.length} file(s)`);
-        try {
-          for (const file of req.files) {
-            console.log(`📧 [DEADLINE FILES] Notifying students about: ${file.originalname}`);
-            await notifyStudentsOfMaterialPosted(parseInt(classId, 10), title, file.originalname);
-            console.log(`✅ [DEADLINE FILES] Notification sent for: ${file.originalname}`);
+        if (filesError) {
+          console.error('❌ Error saving file records:', filesError);
+        } else {
+          console.log(`✅ Uploaded ${fileRecords.length} files for deadline ${deadline.id}`);
+          
+          // Send notifications to all students about deadline with files
+          console.log(`\n📨 [DEADLINE FILES] Starting notifications for ${fileRecords.length} file(s)`);
+          try {
+            for (const fileRecord of fileRecords) {
+              console.log(`📧 [DEADLINE FILES] Notifying students about: ${fileRecord.file_name}`);
+              await notifyStudentsOfMaterialPosted(parseInt(classId, 10), title, fileRecord.file_name);
+              console.log(`✅ [DEADLINE FILES] Notification sent for: ${fileRecord.file_name}`);
+            }
+            console.log(`📨 [DEADLINE FILES] All notifications completed\n`);
+          } catch (notifError) {
+            console.error('❌ [DEADLINE FILES] Error sending notifications:', notifError.message);
+            console.error('   Full error:', notifError);
           }
-          console.log(`📨 [DEADLINE FILES] All notifications completed\n`);
-        } catch (notifError) {
-          console.error('❌ [DEADLINE FILES] Error sending notifications:', notifError.message);
-          console.error('   Full error:', notifError);
         }
       }
     }
