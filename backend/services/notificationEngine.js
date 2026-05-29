@@ -306,7 +306,7 @@ const notifyStudentsOfNewTask = async (taskId, classId, taskTitle, taskDescripti
     // Get class details
     const { data: classData } = await supabaseAdmin
       .from('classes')
-      .select('class_name, instructor_id')
+      .select('class_name, teacher_id')
       .eq('id', classId)
       .single();
 
@@ -581,12 +581,12 @@ const notifyStudentsOfMaterialPosted = async (classId, materialTitle, materialFi
   
   try {
     console.log(`[NOTIFY_MATERIAL] Step 1: Getting class details...`);
-    console.log(`   Querying: SELECT class_name, instructor_id FROM classes WHERE id = ${classId}`);
+    console.log(`   Querying: SELECT class_name, teacher_id FROM classes WHERE id = ${classId}`);
 
     // Get class details
     const { data: classData, error: classError } = await supabaseAdmin
       .from('classes')
-      .select('class_name, instructor_id')
+      .select('class_name, teacher_id')
       .eq('id', classId)
       .single();
 
@@ -610,7 +610,7 @@ const notifyStudentsOfMaterialPosted = async (classId, materialTitle, materialFi
     const { data: teacher } = await supabaseAdmin
       .from('users')
       .select('name')
-      .eq('id', classData.instructor_id)
+      .eq('id', classData.teacher_id)
       .single();
 
     console.log(`✓ [NOTIFY_MATERIAL] Teacher found: ${teacher?.name || 'Unknown'}`);
