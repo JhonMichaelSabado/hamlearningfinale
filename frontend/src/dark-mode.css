@@ -813,11 +813,12 @@ body.dark-mode .auth-right {
   color: #eef2ff;
 }
 
-/* Make the form card white with dark text for readability */
+/* Make the form card dark in dark mode with light text for readability */
 body.dark-mode .auth-form-card {
-  background: #ffffff !important;
-  color: #0b1220 !important;
-  box-shadow: 0 10px 40px rgba(2,6,23,0.08) !important;
+  background: #0f172a !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 10px 40px rgba(2,6,23,0.6) !important;
+  border: 1px solid rgba(255,255,255,0.03) !important;
 }
 
 body.dark-mode .brand-center .brand-tagline-center,
@@ -844,23 +845,23 @@ body.dark-mode .tab.active {
 body.dark-mode .auth-form label,
 body.dark-mode .section-label,
 body.dark-mode .form-group label {
-  color: #0b1220;
+  color: #e6eef8 !important;
   font-weight: 600;
 }
 
-/* Inputs inside the white form card should be dark-on-white */
+/* Inputs inside the dark form card should be dark background with light text */
 body.dark-mode .auth-form-card .auth-form input,
 body.dark-mode .auth-form-card .auth-form select,
 body.dark-mode .auth-form-card .auth-form textarea,
 body.dark-mode .auth-form-card .auth-form .password-input-wrapper input {
-  background: #ffffff !important;
-  border: 1px solid #cbd5e1 !important;
-  color: #0b1220 !important;
+  background: #071025 !important;
+  border: 1px solid #263244 !important;
+  color: #f1f5f9 !important;
 }
 
 body.dark-mode .auth-form-card .auth-form input::placeholder,
 body.dark-mode .auth-form-card .auth-form textarea::placeholder {
-  color: #6b7280 !important;
+  color: #94a3b8 !important;
 }
 
 /* Field errors and success */
@@ -890,13 +891,24 @@ body.dark-mode .btn-submit:disabled {
 
 /* Role selector */
 body.dark-mode .role-option {
-  background: #071023;
-  border: 1px solid #1f2a3a;
-  color: #dbeafe;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.04);
+  color: #e6eef8;
+}
+body.dark-mode .role-option .role-icon,
+body.dark-mode .role-option .role-icon * {
+  color: #e6eef8;
+  fill: #e6eef8;
 }
 body.dark-mode .role-option.selected {
-  background: linear-gradient(135deg,#0ea5a5,#06b6d4);
-  color: #001219;
+  background: linear-gradient(90deg,#10b981,#059669) !important;
+  color: #ffffff !important;
+  border-color: rgba(16,185,129,0.6) !important;
+}
+body.dark-mode .role-option.selected .role-icon,
+body.dark-mode .role-option.selected .role-icon * {
+  color: #ffffff !important;
+  fill: #ffffff !important;
 }
 
 /* Improve contrast for dividers and small text */
