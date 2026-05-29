@@ -980,6 +980,55 @@ body.dark-mode .auth-form-card .google-login-wrapper * {
   opacity: 1 !important;
 }
 
+/* Final auth-specific overrides to keep all form text readable in dark mode */
+body.dark-mode .auth-form-card .welcome-section h2,
+body.dark-mode .auth-form-card .welcome-section p,
+body.dark-mode .auth-form-card .section-label,
+body.dark-mode .auth-form-card .form-group label,
+body.dark-mode .auth-form-card .forgot-password a,
+body.dark-mode .auth-form-card .divider span,
+body.dark-mode .auth-form-card .password-guidance,
+body.dark-mode .auth-form-card .field-error,
+body.dark-mode .auth-form-card .field-success,
+body.dark-mode .auth-form-card .password-strength-meta span,
+body.dark-mode .auth-form-card .password-strength-meta strong {
+  color: #ffffff !important;
+}
+
+body.dark-mode .auth-form-card .form-group input,
+body.dark-mode .auth-form-card .form-group select,
+body.dark-mode .auth-form-card .form-group textarea,
+body.dark-mode .auth-form-card .password-input-wrapper input {
+  color: #ffffff !important;
+  background: #0b1220 !important;
+  border-color: #334155 !important;
+}
+
+body.dark-mode .auth-form-card .form-group input::placeholder,
+body.dark-mode .auth-form-card .form-group textarea::placeholder {
+  color: #cbd5e1 !important;
+}
+
+body.dark-mode .auth-form-card .role-option {
+  background: linear-gradient(135deg, #16a34a, #059669) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+}
+
+body.dark-mode .auth-form-card .role-option .role-icon,
+body.dark-mode .auth-form-card .role-option .role-icon * {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
+body.dark-mode .auth-form-card .role-option.selected {
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.14) inset;
+}
+
+body.dark-mode .auth-form-card .role-option span {
+  color: #ffffff !important;
+}
+
 /* Specific fallbacks for common Google button classes */
 body.dark-mode .auth-form-card .g_id_signin,
 body.dark-mode .auth-form-card .g_id_signin * {
