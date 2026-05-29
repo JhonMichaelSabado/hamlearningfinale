@@ -92,26 +92,39 @@ const CompleteProfile = () => {
             <>
               <div className="form-group">
                 <label>Academic Year</label>
-                <input
-                  type="text"
+                <select
                   name="academicYear"
                   value={formData.academicYear}
                   onChange={handleChange}
-                  placeholder="e.g., Freshman, Sophomore"
                   required
-                />
+                >
+                  <option value="">Select year</option>
+                  <option value="1st year">1st year</option>
+                  <option value="2nd year">2nd year</option>
+                  <option value="3rd year">3rd year</option>
+                  <option value="4th year">4th year</option>
+                </select>
               </div>
 
               <div className="form-group">
                 <label>Target GPA</label>
-                <input
-                  type="text"
+                <select
                   name="targetGPA"
                   value={formData.targetGPA}
                   onChange={handleChange}
-                  placeholder="3.5"
                   required
-                />
+                >
+                  <option value="">Select target GPA</option>
+                  <option value="1.00">1.00 (Highest)</option>
+                  <option value="1.25">1.25</option>
+                  <option value="1.50">1.50</option>
+                  <option value="1.75">1.75</option>
+                  <option value="2.00">2.00</option>
+                  <option value="2.25">2.25</option>
+                  <option value="2.50">2.50</option>
+                  <option value="2.75">2.75</option>
+                  <option value="3.00">3.00</option>
+                </select>
               </div>
             </>
           )}
