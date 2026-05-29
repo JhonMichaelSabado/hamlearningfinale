@@ -3359,9 +3359,18 @@ body.dark-mode .file-detail-modal::-webkit-scrollbar-thumb {
 
   body.dark-mode .task-input[type="date"]::-webkit-calendar-picker-indicator,
   body.dark-mode .task-input[type="time"]::-webkit-calendar-picker-indicator {
-    filter: invert(1) brightness(1.15) !important;
+    filter: invert(1) brightness(1.75) contrast(1.25) !important;
+    -webkit-filter: invert(1) brightness(1.75) contrast(1.25) !important;
     opacity: 1 !important;
     cursor: pointer;
+  }
+
+  body.dark-mode .task-input[type="date"]::-webkit-inner-spin-button,
+  body.dark-mode .task-input[type="time"]::-webkit-inner-spin-button,
+  body.dark-mode .task-input[type="date"]::-webkit-clear-button,
+  body.dark-mode .task-input[type="time"]::-webkit-clear-button {
+    filter: invert(1) brightness(1.75) contrast(1.25) !important;
+    -webkit-filter: invert(1) brightness(1.75) contrast(1.25) !important;
   }
 
   body.dark-mode .task-input[type="date"]::-webkit-datetime-edit,
