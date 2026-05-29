@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IoCloseOutline, IoDocumentTextOutline, IoCreateOutline, IoAttachOutline, IoCalendarOutline, IoTimeOutline } from 'react-icons/io5';
 import { taskAPI, fileAPI, submissionAPI } from '../../services/api';
+import ConfirmModal from '../ConfirmModal';
 import StudentDeadlineView from './StudentDeadlineView';
 import './Module.css';
 
@@ -53,6 +54,8 @@ const Tasks = () => {
   const [showAddTask, setShowAddTask] = useState(false);
   const [selectedDeadline, setSelectedDeadline] = useState(null);
   const [selectedPersonalTask, setSelectedPersonalTask] = useState(null);
+  const [deleteTaskModalOpen, setDeleteTaskModalOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState(null);
   const [uploadingPersonalAttachment, setUploadingPersonalAttachment] = useState(false);
   const [activeTab, setActiveTab] = useState('teacher'); // 'teacher', 'personal', or 'files'
   
@@ -193,13 +196,24 @@ const Tasks = () => {
   };
 
   const handleDeletePersonalTask = async (taskId) => {
-    if (!window.confirm('Are you sure you want to delete this task?')) {
+    setTaskToDelete(taskId);
+    setDeleteTaskModalOpen(true);
+  };
+
+  const closeDeleteTaskModal = () => {
+    setDeleteTaskModalOpen(false);
+    setTaskToDelete(null);
+  };
+
+  const confirmDeletePersonalTask = async () => {
+    if (!taskToDelete) {
       return;
     }
 
     try {
-      await taskAPI.deletePersonalTask(taskId);
+      await taskAPI.deletePersonalTask(taskToDelete);
       await fetchTasks();
+      closeDeleteTaskModal();
     } catch (error) {
       console.error('Error deleting task:', error);
       setError('Failed to delete task');
@@ -387,6 +401,16 @@ const Tasks = () => {
                       <div className="task-card-header">
                         <div>
                           <h3 className="task-card-title">{deadline?.title}</h3>
+
+                      <ConfirmModal
+                        isOpen={deleteTaskModalOpen}
+                        title="Delete Task?"
+                        message="This will permanently delete the selected personal task. This cannot be undone."
+                        confirmText="Delete"
+                        cancelText="Cancel"
+                        onConfirm={confirmDeletePersonalTask}
+                        onCancel={closeDeleteTaskModal}
+                      />
                           <p className="task-card-class">
                             📚 {deadline?.classes?.class_name} ({deadline?.classes?.section})
                           </p>
