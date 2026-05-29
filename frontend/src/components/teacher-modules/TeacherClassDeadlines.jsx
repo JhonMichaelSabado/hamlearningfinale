@@ -15,6 +15,7 @@ const TeacherClassDeadlines = () => {
   const [success, setSuccess] = useState('');
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [selectedDeadline, setSelectedDeadline] = useState(null);
+  const [filterType, setFilterType] = useState('all');
   
   const [newDeadline, setNewDeadline] = useState({
     title: '',
@@ -180,12 +181,28 @@ const TeacherClassDeadlines = () => {
     <div className="class-section-container">
       <div className="section-header">
         <h2>Deadlines for {classData.className || classData.class_name}</h2>
-        <button 
-          className="create-btn"
-          onClick={() => setShowCreateModal(true)}
-        >
-          <span>+</span> Create Deadline
-        </button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', background: 'white' }}
+            title="Filter by deadline type"
+          >
+            <option value="all">All types</option>
+            <option value="assignment">Assignment</option>
+            <option value="project">Project</option>
+            <option value="exam">Exam</option>
+            <option value="quiz">Quiz</option>
+            <option value="other">Other</option>
+          </select>
+
+          <button 
+            className="create-btn"
+            onClick={() => setShowCreateModal(true)}
+          >
+            <span>+</span> Create Deadline
+          </button>
+        </div>
       </div>
 
       {error && <div className="error-message">{error}</div>}
@@ -199,7 +216,9 @@ const TeacherClassDeadlines = () => {
         </div>
       ) : (
         <div className="deadlines-list">
-          {deadlines.map((deadline) => {
+          {deadlines
+            .filter((d) => filterType === 'all' ? true : (d.type === filterType))
+            .map((deadline) => {
             const overdue = isOverdue(deadline.due_date);
             return (
               <div 
