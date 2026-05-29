@@ -6,9 +6,10 @@
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 9999 !important;
+  padding: 1rem;
 }
 
 .modal-content {
@@ -17,6 +18,24 @@
   width: 90%;
   max-width: 500px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* Force centered modal on small screens and prevent bottom-sheet behavior */
+@media (max-width: 760px) {
+  .modal-overlay {
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .modal-content {
+    width: 96% !important;
+    max-width: 520px !important;
+    margin: 0 auto !important;
+    border-radius: 12px !important;
+    transform: translateY(0) !important;
+    max-height: 92vh !important;
+    overflow-y: auto !important;
+  }
 }
 
 .modal-header {
