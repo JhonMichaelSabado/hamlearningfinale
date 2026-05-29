@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { classAPI, taskAPI } from '../services/api';
+import { classAPI, taskAPI, deadlineAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { IoHomeOutline, IoCalendarOutline, IoTimeOutline, IoStatsChartOutline, IoSchoolOutline, IoCheckboxOutline, IoTimerOutline, IoHeartOutline, IoArchiveOutline, IoSettingsOutline, IoLogOutOutline } from 'react-icons/io5';
 import './StudentSidebar.css';
@@ -10,6 +10,8 @@ const StudentSidebar = ({ refreshTrigger }) => {
   const [loading, setLoading] = useState(true);
   const [hasTasks, setHasTasks] = useState(false);
   const [hamsterImage, setHamsterImage] = useState('/images/hamster-task.jpg');
+  const [upcomingCount, setUpcomingCount] = useState(0);
+  const [nearestDueText, setNearestDueText] = useState('');
   const navigate = useNavigate();
   const { logout } = useAuth();
 
@@ -42,19 +44,70 @@ const StudentSidebar = ({ refreshTrigger }) => {
 
   const checkTasks = async () => {
     try {
-      const response = await taskAPI.getMyTasks();
-      const tasks = response.data.personalTasks || [];
+      const [taskRes, deadlineRes] = await Promise.allSettled([taskAPI.getMyTasks(), deadlineAPI.getMyDeadlines()]);
+
+      const tasks = (taskRes.status === 'fulfilled' ? (taskRes.value.data.personalTasks || []) : []);
       setHasTasks(tasks.length > 0);
-      updateHamsterImage(tasks);
+
+      // deadlines API may return array or object; try to normalize
+      let deadlines = [];
+      if (deadlineRes.status === 'fulfilled') {
+        const dr = deadlineRes.value.data;
+        // if response is object with deadlines property
+        if (Array.isArray(dr)) deadlines = dr;
+        else if (Array.isArray(dr.deadlines)) deadlines = dr.deadlines;
+      }
+
+      // compute upcoming deadlines (not completed and in future)
+      const now = new Date();
+      const upcoming = deadlines.filter(d => {
+        try {
+          const due = new Date(d.due_date || d.deadline_date || d.dueDate);
+          return due > now && !d.is_completed;
+        } catch (e) {
+          return false;
+        }
+      });
+
+      setUpcomingCount(upcoming.length);
+
+      // nearest upcoming
+      if (upcoming.length > 0) {
+        const nearest = upcoming.reduce((a, b) => {
+          const da = new Date(a.due_date || a.deadline_date || a.dueDate);
+          const db = new Date(b.due_date || b.deadline_date || b.dueDate);
+          return da < db ? a : b;
+        });
+        const nearestDue = new Date(nearest.due_date || nearest.deadline_date || nearest.dueDate);
+        setNearestDueText(getTimeUntilShort(nearestDue));
+      } else {
+        setNearestDueText('No upcoming');
+      }
+
+      updateHamsterImage(tasks, upcoming.length, upcoming.length > 0 ? upcoming.reduce((a,b)=>{const da=new Date(a.due_date||a.deadline_date||a.dueDate);const db=new Date(b.due_date||b.deadline_date||b.dueDate);return da<db?a:b}) : null);
     } catch (error) {
-      console.error('Error fetching task status:', error);
+      console.error('Error fetching task status or deadlines:', error);
       setHasTasks(false);
       setHamsterImage('/images/hamster-task.jpg');
+      setUpcomingCount(0);
+      setNearestDueText('');
     }
   };
 
   // Get the appropriate hamster image based on task status
-  const updateHamsterImage = (tasks) => {
+  const getTimeUntilShort = (dueDate) => {
+    const now = new Date();
+    const diff = dueDate - now;
+    if (diff < 0) return 'Overdue';
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    if (days > 1) return `${days}d`; 
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    if (hours >= 1) return `${hours}h`;
+    const minutes = Math.floor(diff / (1000 * 60));
+    return `${minutes}m`;
+  };
+
+  const updateHamsterImage = (tasks, upcomingCountArg = 0, nearestObj = null) => {
     if (!tasks || tasks.length === 0) {
       setHamsterImage('/images/hamster-task.jpg'); // Default - no tasks
       return;
@@ -71,22 +124,53 @@ const StudentSidebar = ({ refreshTrigger }) => {
       new Date(task.completed_at) >= oneWeekAgo
     ).length;
 
-    // Priority order:
-    // 1. If more than 3 pending tasks
+    // Priority order incorporating deadlines urgency:
+    // 1. If there are many upcoming deadlines -> overwhelmed image
+    if (upcomingCountArg > 5) {
+      setHamsterImage('/images/hamster-task-overwhelmed.png');
+      return;
+    }
+
+    // 2. If nearest deadline is very near (within 24 hours)
+    if (nearestObj) {
+      const nearestDue = new Date(nearestObj.due_date || nearestObj.deadline_date || nearestObj.dueDate);
+      const diffHours = (nearestDue - new Date()) / (1000 * 60 * 60);
+      if (diffHours <= 0) {
+        setHamsterImage('/images/hamster-task-overdue.png');
+        return;
+      }
+      if (diffHours <= 24) {
+        setHamsterImage('/images/hamster-task-anxious.png');
+        return;
+      }
+      if (diffHours <= 72) {
+        setHamsterImage('/images/hamster-task-soon.png');
+        return;
+      }
+    }
+
+    // 3. If more than 3 pending tasks
     if (pendingTasks > 3) {
       setHamsterImage('/images/hamster-task (have more than 3 tasks).png');
+      return;
     }
-    // 2. If completed more than 1 task this week
+
+    // 4. If completed more than 1 task this week
     else if (completedThisWeek > 1) {
       setHamsterImage('/images/hamster-task (done more than 1).jpg');
+      return;
     }
-    // 3. If completed exactly 1 task this week
+
+    // 5. If completed exactly 1 task this week
     else if (completedThisWeek === 1) {
       setHamsterImage('/images/hamster-task (done 1 task for the week).jpg');
+      return;
     }
-    // 4. Default - no tasks completed yet
+
+    // 6. Default - no tasks completed yet
     else {
       setHamsterImage('/images/hamster-task.jpg');
+      return;
     }
   };
 
@@ -119,9 +203,17 @@ const StudentSidebar = ({ refreshTrigger }) => {
             </NavLink>
             
             {item.name === 'Tasks' && (
-              <div className="empty-tasks-message">
-                <img src={hamsterImage} alt="Hamster task status" className="hamster-no-tasks" />
-              </div>
+                      <div className="empty-tasks-message">
+                        <div className="hamster-image-wrap">
+                          <img src={hamsterImage} alt="Hamster task status" className="hamster-no-tasks" />
+                          {upcomingCount > 0 && (
+                            <div className="hamster-badge">
+                              <div className="hamster-badge-count">{upcomingCount}</div>
+                              <div className="hamster-badge-text">{nearestDueText}</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
             )}
           </React.Fragment>
         ))}
