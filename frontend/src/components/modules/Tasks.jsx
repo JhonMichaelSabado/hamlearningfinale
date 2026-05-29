@@ -195,8 +195,8 @@ const Tasks = () => {
     }
   };
 
-  const handleDeletePersonalTask = async (taskId) => {
-    setTaskToDelete(taskId);
+  const handleDeletePersonalTask = async (task) => {
+    setTaskToDelete(task);
     setDeleteTaskModalOpen(true);
   };
 
@@ -211,7 +211,7 @@ const Tasks = () => {
     }
 
     try {
-      await taskAPI.deletePersonalTask(taskToDelete);
+      await taskAPI.deletePersonalTask(taskToDelete.id);
       await fetchTasks();
       closeDeleteTaskModal();
     } catch (error) {
@@ -402,15 +402,6 @@ const Tasks = () => {
                         <div>
                           <h3 className="task-card-title">{deadline?.title}</h3>
 
-                      <ConfirmModal
-                        isOpen={deleteTaskModalOpen}
-                        title="Delete Task?"
-                        message="This will permanently delete the selected personal task. This cannot be undone."
-                        confirmText="Delete"
-                        cancelText="Cancel"
-                        onConfirm={confirmDeletePersonalTask}
-                        onCancel={closeDeleteTaskModal}
-                      />
                           <p className="task-card-class">
                             📚 {deadline?.classes?.class_name} ({deadline?.classes?.section})
                           </p>
@@ -661,7 +652,7 @@ const Tasks = () => {
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
-                          handleDeletePersonalTask(task.id);
+                          handleDeletePersonalTask(task);
                         }}
                         title="Delete task"
                       >
@@ -831,6 +822,19 @@ const Tasks = () => {
           </div>
         );
       })()}
+
+      <ConfirmModal
+        isOpen={deleteTaskModalOpen}
+        title="Delete Task?"
+        message="This will permanently delete the selected personal task. This cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        requireInput
+        expectedText={taskToDelete?.title || ''}
+        inputPlaceholder={taskToDelete?.title || 'Type the task title to confirm'}
+        onConfirm={confirmDeletePersonalTask}
+        onCancel={closeDeleteTaskModal}
+      />
 
       <style jsx>{`
         .task-tabs {
