@@ -123,11 +123,11 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
       }
 
       // Get public URL
-      const { data: publicUrl } = supabaseAdmin.storage
+      const publicUrl = supabaseAdmin.storage
         .from('class-files')
         .getPublicUrl(storagePath);
 
-      const fileUrl = publicUrl.publicUrl;
+      const fileUrl = publicUrl.data.publicUrl;
       console.log(`✅ File uploaded to Supabase Storage: ${fileUrl}`);
 
       // Save to database

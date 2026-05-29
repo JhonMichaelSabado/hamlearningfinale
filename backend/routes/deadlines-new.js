@@ -107,17 +107,17 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
           }
 
           // Get public URL
-          const { data: publicUrl } = supabaseAdmin.storage
+          const publicUrl = supabaseAdmin.storage
             .from('class-files')
             .getPublicUrl(storagePath);
 
-          console.log(`✅ Material uploaded to Supabase Storage: ${publicUrl.publicUrl}`);
+          console.log(`✅ Material uploaded to Supabase Storage: ${publicUrl.data.publicUrl}`);
 
           fileRecords.push({
             class_id: parseInt(classId, 10),
             teacher_id: userId,
             file_name: file.originalname,
-            file_url: publicUrl.publicUrl,
+            file_url: publicUrl.data.publicUrl,
             file_type: file.mimetype,
             file_size: file.size,
             title,
@@ -234,16 +234,16 @@ router.post('/create', verifyToken, upload.array('files', 10), async (req, res) 
           }
 
           // Get public URL
-          const { data: publicUrl } = supabaseAdmin.storage
+          const publicUrl = supabaseAdmin.storage
             .from('class-files')
             .getPublicUrl(storagePath);
 
-          console.log(`✅ File uploaded to Supabase Storage: ${publicUrl.publicUrl}`);
+          console.log(`✅ File uploaded to Supabase Storage: ${publicUrl.data.publicUrl}`);
 
           fileRecords.push({
             deadline_id: deadline.id,
             file_name: file.originalname,
-            file_path: publicUrl.publicUrl,
+            file_path: publicUrl.data.publicUrl,
             file_type: file.mimetype,
             file_size: file.size
           });

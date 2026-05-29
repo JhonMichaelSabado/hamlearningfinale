@@ -69,18 +69,18 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
+    const publicUrl = supabaseAdmin.storage
       .from('class-files')
       .getPublicUrl(fileName);
 
     // Save to database
-    const { data: fileRecord, error: dbError } = await supabase
+    const { data: fileRecord, error: dbError } = await supabaseAdmin
       .from('class_files')
       .insert({
         class_id: classIdNum,
         teacher_id: req.user.id,
         file_name: file.originalname,
-        file_url: publicUrl,
+        file_url: publicUrl.data.publicUrl,
         file_type: file.mimetype,
         file_size: file.size,
         title: title,

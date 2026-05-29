@@ -99,11 +99,11 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
     console.log('Upload successful:', uploadData);
 
     // Get public URL
-    const { data: { publicUrl } } = adminSupabase.storage
+    const publicUrl = adminSupabase.storage
       .from('class-files')
       .getPublicUrl(fileName);
 
-    console.log('Public URL:', publicUrl);
+    console.log('Public URL:', publicUrl.data.publicUrl);
 
     // Save to database (using ADMIN client)
     const { data: fileRecord, error: dbError } = await adminSupabase
@@ -112,7 +112,7 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
         class_id: classIdNum,
         teacher_id: req.user.id,
         file_name: file.originalname,
-        file_url: publicUrl,
+        file_url: publicUrl.data.publicUrl,
         file_type: file.mimetype,
         file_size: file.size,
         title: title,
