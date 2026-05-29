@@ -149,6 +149,7 @@ function AppRoutes() {
         }
       >
         <Route index element={<DashboardHome />} />
+        <Route path="submissions" element={<StudentDeadlines />} />
         <Route path="class/:classId" element={<ClassDetail />} />
         <Route path="schedules" element={<Schedules />} />
         <Route path="deadlines" element={<StudentDeadlines />} />
