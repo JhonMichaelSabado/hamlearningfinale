@@ -16,6 +16,17 @@ const StudentDeadlineView = ({ deadline, onClose, onSubmitted }) => {
   const [, setArchiveTick] = useState(0);
   const currentDeadline = deadlineDetails || deadline;
 
+  // Helper function to get proper file URL
+  const getFileUrl = (filePath) => {
+    if (!filePath) return '';
+    // If it's already a full URL (starts with http), use it directly
+    if (filePath.startsWith('http')) {
+      return filePath;
+    }
+    // Otherwise, prepend the backend URL for local files
+    return `https://hamlearningfinale.vercel.app/_backend${filePath}`;
+  };
+
   useEffect(() => {
     fetchDeadlineAndSubmission();
   }, [deadline.id]);
@@ -224,7 +235,7 @@ const StudentDeadlineView = ({ deadline, onClose, onSubmitted }) => {
                   {currentDeadline.files.filter((f) => !isMaterialArchived({ source_type: 'deadline_attachment', source_id: f.id })).map((file) => (
                     <a
                       key={file.id}
-                      href={`https://hamlearningfinale.vercel.app/_backend${file.file_path}`}
+                      href={getFileUrl(file.file_path)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="file-chip"
@@ -251,7 +262,7 @@ const StudentDeadlineView = ({ deadline, onClose, onSubmitted }) => {
                       {submission.files.map((file) => (
                         <a
                           key={file.id}
-                          href={`https://hamlearningfinale.vercel.app/_backend${file.file_path}`}
+                          href={getFileUrl(file.file_path)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="file-card-mini"
@@ -289,7 +300,7 @@ const StudentDeadlineView = ({ deadline, onClose, onSubmitted }) => {
                       {submission.files.map((file) => (
                         <a
                           key={file.id}
-                          href={`https://hamlearningfinale.vercel.app/_backend${file.file_path}`}
+                          href={getFileUrl(file.file_path)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="file-card-mini"

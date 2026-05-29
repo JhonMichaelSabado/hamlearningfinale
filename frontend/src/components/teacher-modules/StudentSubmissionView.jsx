@@ -11,6 +11,15 @@ const StudentSubmissionView = ({ submission, deadline, onClose, onGraded }) => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
+  // Helper function to get proper file URL
+  const getFileUrl = (filePath) => {
+    if (!filePath) return '';
+    if (filePath.startsWith('http')) {
+      return filePath;
+    }
+    return `https://hamlearningfinale.vercel.app/_backend${filePath}`;
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'Not submitted';
     const date = new Date(dateString);
@@ -137,7 +146,7 @@ const StudentSubmissionView = ({ submission, deadline, onClose, onGraded }) => {
                       {submission.files.map((file) => (
                         <a
                           key={file.id}
-                          href={`https://hamlearningfinale.vercel.app/_backend${file.file_path}`}
+                          href={getFileUrl(file.file_path)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="file-card"

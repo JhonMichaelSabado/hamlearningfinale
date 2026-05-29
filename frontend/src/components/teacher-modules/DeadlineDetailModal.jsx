@@ -12,6 +12,15 @@ const DeadlineDetailModal = ({ deadline, onClose, onRefresh }) => {
   const [filter, setFilter] = useState('all'); // all, submitted, not-submitted, graded, late
   const [localArchivedIds, setLocalArchivedIds] = useState(new Set());
 
+  // Helper function to get proper file URL
+  const getFileUrl = (filePath) => {
+    if (!filePath) return '';
+    if (filePath.startsWith('http')) {
+      return filePath;
+    }
+    return `https://hamlearningfinale.vercel.app/_backend${filePath}`;
+  };
+
   useEffect(() => {
     fetchSubmissions();
   }, [deadline.id]);
@@ -82,7 +91,7 @@ const DeadlineDetailModal = ({ deadline, onClose, onRefresh }) => {
       file_name: file.file_name,
       file_type: file.file_type,
       file_size: file.file_size,
-      file_url: `https://hamlearningfinale.vercel.app/_backend${file.file_path}`,
+      file_url: getFileUrl(file.file_path),
       file_path: file.file_path,
       class_id: deadline.class_id,
       deadline_id: deadline.id,
@@ -151,7 +160,7 @@ const DeadlineDetailModal = ({ deadline, onClose, onRefresh }) => {
                   {deadline.files.filter((f) => !localArchivedIds.has(f.id) && !isMaterialArchived({ source_type: 'deadline_attachment', source_id: f.id })).map((file) => (
                     <div key={file.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <a
-                        href={`https://hamlearningfinale.vercel.app/_backend${file.file_path}`}
+                        href={getFileUrl(file.file_path)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="file-chip"
