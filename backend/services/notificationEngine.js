@@ -127,19 +127,51 @@ const getEmailFooter = () => `
 
 /**
  * NOTIFICATION 1: STUDENT SUBMISSION RECEIVED
- * Triggered when: Student submits work for a task
+ * Triggered when: Student submits work for a task or deadline
  * Recipient: Teacher of the class
  */
-const notifyTeacherOfSubmission = async (taskId, studentId, studentName, fileName) => {
+const notifyTeacherOfSubmission = async (taskOrDeadlineId, studentId, studentName, fileName) => {
   try {
-    console.log(`📧 [NOTIFY TEACHER] Task submission from ${studentName}`);
+    console.log(`📧 [NOTIFY TEACHER] Task/Deadline submission from ${studentName}`);
 
-    // Get task details
-    const { data: task } = await supabaseAdmin
+    // Try to get task details first
+    let { data: task } = await supabaseAdmin
       .from('tasks')
       .select('id, title, class_id, teacher_id')
-      .eq('id', taskId)
+      .eq('id', taskOrDeadlineId)
       .single();
+
+    // If no task found, try deadline
+    if (!task) {
+      const { data: deadline } = await supabaseAdmin
+        .from('deadlines')
+        .select('id, title, class_id')
+        .eq('id', taskOrDeadlineId)
+        .single();
+
+      if (!deadline) {
+        console.warn('⚠️  Task or deadline not found');
+        return;
+      }
+
+      // Get class details to find teacher
+      const { data: classData } = await supabaseAdmin
+        .from('classes')
+        .select('teacher_id')
+        .eq('id', deadline.class_id)
+        .single();
+
+      if (!classData) {
+        console.warn('⚠️  Class not found');
+        return;
+      }
+
+      task = {
+        title: deadline.title,
+        class_id: deadline.class_id,
+        teacher_id: classData.teacher_id
+      };
+    }
 
     if (!task || !task.teacher_id) {
       console.warn('⚠️  Task or teacher not found');
@@ -186,7 +218,7 @@ const notifyTeacherOfSubmission = async (taskId, studentId, studentName, fileNam
             <div class="activity-card">
               <h3>📝 ${task.title}</h3>
               <p><span class="label">Student:</span> ${studentName}</p>
-              ${fileName ? `<p><span class="label">File:</span> ${fileName}</p>` : ''}
+              ${fileName ? `<p><span class="label">File(s):</span> ${fileName}</p>` : ''}
               <p><span class="label">Time:</span> ${new Date().toLocaleString()}</p>
             </div>
 

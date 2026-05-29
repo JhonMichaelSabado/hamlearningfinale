@@ -3,7 +3,9 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const supabase = require('../config/supabase');
+const supabaseAdmin = require('../config/supabase-admin');
 const { verifyToken } = require('../middleware/auth');
+const { notifyTeacherOfSubmission } = require('../services/notificationEngine');
 
 const router = express.Router();
 
@@ -160,48 +162,69 @@ router.post('/submit', verifyToken, upload.array('files', 10), async (req, res) 
     }
 
     // Handle file uploads
+    let uploadedFileNames = [];
     if (req.files && req.files.length > 0) {
-      const submissionDir = isVercel ? '/tmp' : path.join(
-        __dirname,
-        '../uploads/submission-files',
-        `class-${deadline.class_id}`,
-        `deadline-${deadlineId}`,
-        `student-${userId}`
-      );
-      
-      try {
-        if (!isVercel) {
-          await fs.mkdir(submissionDir, { recursive: true });
-        }
-      } catch(e) {
-        console.log("Skipping student submission dir creation on Vercel");
-      }
-
       const fileRecords = [];
 
       for (const file of req.files) {
-        const tempPath = file.path;
-        const finalPath = path.join(submissionDir, file.filename);
-        
-        // Move file from temp to final location
-        await fs.rename(tempPath, finalPath);
+        try {
+          console.log(`📤 Uploading submission file to Supabase Storage: ${file.originalname}`);
+          
+          // Read file buffer from disk
+          const fileBuffer = await fs.readFile(file.path);
+          
+          // Generate unique storage path for submission files
+          const storagePath = `submission-files/class-${deadline.class_id}/deadline-${deadlineId}/student-${userId}/${Date.now()}-${file.originalname}`;
+          
+          // Upload to Supabase Storage
+          const { data: uploadedFile, error: uploadError } = await supabaseAdmin.storage
+            .from('class-files')
+            .upload(storagePath, fileBuffer, {
+              contentType: file.mimetype,
+              upsert: false
+            });
 
-        fileRecords.push({
-          submission_id: submission.id,
-          file_name: file.originalname,
-          file_path: `/uploads/submission-files/class-${deadline.class_id}/deadline-${deadlineId}/student-${userId}/${file.filename}`,
-          file_type: file.mimetype,
-          file_size: file.size
-        });
+          if (uploadError) {
+            console.error('❌ Storage upload error:', uploadError);
+            continue;
+          }
+
+          // Get public URL
+          const publicUrl = supabaseAdmin.storage
+            .from('class-files')
+            .getPublicUrl(storagePath);
+
+          console.log(`✅ Submission file uploaded to Supabase Storage: ${publicUrl.data.publicUrl}`);
+          uploadedFileNames.push(file.originalname);
+
+          fileRecords.push({
+            submission_id: submission.id,
+            file_name: file.originalname,
+            file_path: publicUrl.data.publicUrl,
+            file_type: file.mimetype,
+            file_size: file.size
+          });
+
+          // Clean up temp file
+          try {
+            await fs.unlink(file.path);
+          } catch (e) {
+            console.log('Could not delete temp file:', e.message);
+          }
+        } catch (error) {
+          console.error('❌ Error processing submission file:', error.message);
+        }
       }
 
       // Insert file records
-      const { error: filesError } = await supabase
-        .from('submission_files')
-        .insert(fileRecords);
+      if (fileRecords.length > 0) {
+        const { error: filesError } = await supabaseAdmin
+          .from('submission_files')
+          .insert(fileRecords);
 
-      if (filesError) {
-        console.error('❌ Error saving files:', filesError);
+        if (filesError) {
+          console.error('❌ Error saving file records:', filesError);
+        }
       }
 
       console.log(`✅ Uploaded ${fileRecords.length} files`);
@@ -232,6 +255,26 @@ router.post('/submit', verifyToken, upload.array('files', 10), async (req, res) 
       .from('submission_files')
       .select('*')
       .eq('submission_id', submission.id);
+
+    // Get student name for notification
+    const { data: student } = await supabaseAdmin
+      .from('users')
+      .select('name')
+      .eq('id', userId)
+      .single();
+
+    // Send notification to teacher
+    if (student) {
+      try {
+        console.log(`📧 [SUBMISSION] Sending notification to teacher about submission...`);
+        const fileName = uploadedFileNames.length > 0 ? uploadedFileNames.join(', ') : null;
+        // Notify teacher using a modified call with deadline info
+        // Pass deadlineId as taskId (they serve similar purpose here)
+        await notifyTeacherOfSubmission(deadlineId, userId, student.name, fileName);
+      } catch (notifError) {
+        console.error('⚠️  Error sending notification (non-blocking):', notifError.message);
+      }
+    }
 
     res.json({
       message: 'Work submitted successfully',
