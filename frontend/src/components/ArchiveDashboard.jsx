@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { deadlineAPI, fileAPI } from '../services/api';
 import { getArchivedMaterials, onArchiveChange, syncArchiveFromServer, unarchiveMaterial } from '../services/archive';
 import axios from 'axios';
+import ConfirmModal from './ConfirmModal';
 
 const ArchiveDashboard = () => {
   const { user } = useAuth();
@@ -44,7 +45,22 @@ const ArchiveDashboard = () => {
   };
 
   const handleDeletePermanent = async (item) => {
-    if (!window.confirm('Permanently delete this archived material? This cannot be undone.')) return;
+    // now handled via ConfirmModal
+    return;
+  };
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmItem, setConfirmItem] = useState(null);
+
+  const openDeleteConfirm = (item) => {
+    setConfirmItem(item);
+    setConfirmOpen(true);
+  };
+
+  const performDeletePermanent = async () => {
+    const item = confirmItem;
+    setConfirmOpen(false);
+    if (!item) return;
 
     try {
       setLoading(true);
@@ -71,6 +87,7 @@ const ArchiveDashboard = () => {
       setMessage(error.response?.data?.message || 'Failed to delete archived material.');
     } finally {
       setLoading(false);
+      setConfirmItem(null);
     }
   };
 
@@ -109,7 +126,7 @@ const ArchiveDashboard = () => {
             </button>
           )}
           {isTeacher && (
-            <button className="btn-delete-icon" title="Delete permanently" onClick={() => handleDeletePermanent(item)} disabled={loading}>
+            <button className="btn-delete-icon" title="Delete permanently" onClick={() => openDeleteConfirm(item)} disabled={loading}>
               🗑️
             </button>
           )}
@@ -174,6 +191,15 @@ const ArchiveDashboard = () => {
           {renderSection('Archived Deadline Attachments', attachmentItems)}
           {renderSection('Archived Class Materials', materialItems)}
           {renderSection('Archived Personal Items', personalItems)}
+          <ConfirmModal
+            isOpen={confirmOpen}
+            title="Permanently delete archived material?"
+            message="This cannot be undone. Are you sure you want to permanently delete this archived material?"
+            confirmText="Delete"
+            cancelText="Cancel"
+            onConfirm={performDeletePermanent}
+            onCancel={() => setConfirmOpen(false)}
+          />
         </>
       )}
     </div>
