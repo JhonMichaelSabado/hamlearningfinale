@@ -785,6 +785,64 @@ const Wellness = () => {
           font-size: 15px;
         }
 
+        body.dark-mode .journal-section,
+        body.dark-mode .tip-card,
+        body.dark-mode .empty-history,
+        body.dark-mode .history-entry {
+          background: #0f172a;
+          border-color: #334155;
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+        }
+
+        body.dark-mode .journal-section h3,
+        body.dark-mode .tips-heading,
+        body.dark-mode .empty-history h3,
+        body.dark-mode .tip-card h4,
+        body.dark-mode .entry-content,
+        body.dark-mode .entry-date,
+        body.dark-mode .mood-label {
+          color: #ffffff;
+        }
+
+        body.dark-mode .section-hint,
+        body.dark-mode .tips-intro p,
+        body.dark-mode .tip-card p,
+        body.dark-mode .empty-history p,
+        body.dark-mode .encouragement-box p,
+        body.dark-mode .history-intro p {
+          color: #e5e7eb;
+        }
+
+        body.dark-mode .tips-intro,
+        body.dark-mode .encouragement-box,
+        body.dark-mode .history-intro {
+          background: #111827;
+          border-color: #334155;
+        }
+
+        body.dark-mode .mood-button {
+          background: #111827;
+          border-color: #334155;
+        }
+
+        body.dark-mode .mood-button.selected {
+          background: #1e293b;
+        }
+
+        body.dark-mode .journal-textarea {
+          background: #111827;
+          color: #ffffff;
+          border-color: #334155;
+        }
+
+        body.dark-mode .journal-textarea::placeholder {
+          color: #94a3b8;
+        }
+
+        body.dark-mode .delete-entry-btn {
+          color: #cbd5e1;
+        }
+
 
 
         @media (max-width: 768px) {
